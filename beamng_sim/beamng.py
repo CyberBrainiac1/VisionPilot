@@ -27,8 +27,8 @@ from scipy.spatial.transform import Rotation as R
 from beamng_sim.lane_detection.main import process_frame_cv as lane_detection_cv_process_frame
 from beamng_sim.lane_detection.main import process_frame_scnn as lane_detection_scnn_process_frame
 from beamng_sim.sign.main import process_frame as sign_process_frame
-from beamng_sim.traffic_light.detect_classify import detect_traffic_lights
-from beamng_sim.vehicle_obstacle.main import process_frame as vehicle_obstacle_process_frame
+from beamng_sim.traffic_light.main import process_frame as traffic_light_process_frame
+from beamng_sim.object.main import process_frame as object_process_frame
 from beamng_sim.lidar.main import process_frame as lidar_process_frame
 from beamng_sim.radar.main import process_frame as radar_process_frame
 
@@ -125,8 +125,10 @@ def load_config():
         sensors_config = yaml.safe_load(f)
     with open(os.path.join(config_path, 'control.yaml'), 'r') as f:
         control = yaml.safe_load(f)
+    with open(os.path.join(config_path, 'perception.yaml'), 'r') as f:
+        perception_config = yaml.safe_load(f)
 
-    return beamng_config, scenarios_config, sensors_config, control
+    return beamng_config, scenarios_config, sensors_config, control, perception_config
 
 
 def sim_setup(map_name='west_coast_usa', scenario_type='highway', vehicle_name='q8_andronisk'):
@@ -137,7 +139,7 @@ def sim_setup(map_name='west_coast_usa', scenario_type='highway', vehicle_name='
         scenario_type (str): Scenario type ('highway' or 'city')
         vehicle_name (str): Name of the vehicle to use ('etk800' or 'q8_andronisk')
     """
-    beamng_config, scenarios_config, sensors_config, control = load_config()
+    beamng_config, scenarios_config, sensors_config, _, _ = load_config()
     
     if map_name not in scenarios_config['maps']:
         raise ValueError(f"Map '{map_name}' not found in config. Available maps: {list(scenarios_config['maps'].keys())}")
@@ -415,26 +417,40 @@ def lane_detection_fused(img, speed_kph, previous_steering, step_i, vehicle_mode
 
     return result, fused_metrics
 
-def sign_detection_classification(img, draw=True):
+def sign_detection_classification(img, perception_cfg, draw=True):
     """
     Process sign detection and classification on the input image.
     """
-    sign_detections, sign_img = sign_process_frame(img, draw_detections=draw)
+    confidence_threshold = perception_cfg['sign_detection']['confidence_threshold']
+
+    sign_detections, sign_img = sign_process_frame(img, confidence_threshold=confidence_threshold, draw_detections=draw)
     return sign_detections, sign_img
 
-def vehicle_obstacle_detection(img, draw=True):
+def object_detection(img, perception_cfg, draw=True):
     """
     Process vehicle and pedestrian detection on the input image.
     """
-    vehicle_obstacle_detections, vehicle_img = vehicle_obstacle_process_frame(img, draw_detections=draw)
-    return vehicle_obstacle_detections, vehicle_img
+    confidence_threshold = perception_cfg['object_detection']['confidence_threshold']
 
-def traffic_light_detection(img):
+    object_detections, object_img = object_process_frame(img, confidence_threshold=confidence_threshold, draw_detections=draw)
+    return object_detections, object_img
+
+def traffic_light_detection(img, perception_cfg, draw=True):
     """
     Process traffic light detection on the input image.
     """
-    detections = detect_traffic_lights(img)
+    confidence_threshold = perception_cfg['traffic_light_detection']['confidence_threshold']
+
+    detections, result_img = traffic_light_process_frame(img, confidence_threshold=confidence_threshold, draw_detections=draw)
     return detections
+
+def radar_aeb_acc(radar_front, perception_cfg, speed_kph):
+    radar_cfg = perception_cfg['radar']
+
+    radar_result = radar_process_frame(radar_front, radar_cfg, speed_kph)
+
+    return radar_result
+
 
 def draw_combined_detections(img, sign_detections, vehicle_detections, tl_detections):
     result_img = img.copy()
@@ -463,14 +479,6 @@ def draw_combined_detections(img, sign_detections, vehicle_detections, tl_detect
         cv2.putText(result_img, label, (int(x1), int(y1)-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
         
     return result_img
-
-# def lidar_object_detections(lidar_data, camera_detections=vehicle_obstacle_detection):
-#     """
-#     Process LiDAR data for object detection.
-#     """
-#     lidar_detections, lidar_obj_img = lidar_process_object_frame(lidar_data)
-#     return lidar_detections, lidar_obj_img
-
 
 def cruise_control(target_speed_kph, current_speed_kph, speed_pid, dt):
     """
@@ -531,15 +539,16 @@ def main():
     except Exception as e:
         print(f"LiDAR error: {e}")
 
-    # Test all enabled radars
-    for radar_name, radar in radars.items():
-        if radar is not None:
+    # Test all radars
+    try:
+        for radar_name, radar in radars.items():
             try:
-                print(f"Testing {radar_name}...")
-                radar_test = radar.poll()
-                print(f"{radar_name.replace('_', ' ').title()} working: {type(radar_test)}")
+                radar_test = radar_name.poll()
+                print(f"{radar_name} working: {type(radar_test)}")
             except Exception as e:
                 print(f"{radar_name} error: {e}")
+    except Exception as e:
+        print(f"{radar_name} error: {e}")
 
     try:
         print("Testing GPS...")
@@ -563,8 +572,10 @@ def main():
         print(f"Traffic setup error: {e}")
 
     # Load control parameters from config
-    _, _, _, control = load_config()
+    _, _, _, control, perception_config = load_config()
     control_cfg = control['control']
+    perception_cfg = perception_config['perception']
+
     steering_pid = PIDController(**control_cfg['steering_pid'])
     max_steering_change = control_cfg['max_steering_change']
     previous_steering = 0.0
@@ -652,37 +663,43 @@ def main():
             if step_i % 80 == 0: # Lower later
                 try:
                     # Sign Detection
-                    sign_detections, _ = sign_detection_classification(img, draw=False)
+                    sign_detections, _ = sign_detection_classification(img, perception_cfg, draw=False)
                 except Exception as sign_e:
                     print(f"Sign detection error: {sign_e}")
                     sign_detections = []
                 
                 try:
                     # Vehicle & Obstacle Detection
-                    vehicle_detections, _ = vehicle_obstacle_detection(img, draw=False)
+                    object_detections, _ = object_detection(img, perception_cfg, draw=False)
                 except Exception as vehicle_e:
                     print(f"Vehicle detection error: {vehicle_e}")
-                    vehicle_detections = []
+                    object_detections = []
 
                 try:
                     # Traffic Light Detection
-                    traffic_light_detections = traffic_light_detection(img)
+                    traffic_light_detections = traffic_light_detection(img, perception_cfg, draw=False)
                 except Exception as tl_e:
                     print(f"Traffic light detection error: {tl_e}")
                     traffic_light_detections = []
+
+                try:
+                    radar_front = radars.get('radar_front', None)
+                    radar_result = radar_aeb_acc(radar_front, perception_cfg, speed_kph)
+                    
+                    # AEB/ACC decision logic (to be implemented)
+                    # For now, just log the TTC
+                    if radar_result['ttc'] != float('inf'):
+                        print(f"TTC: {radar_result['ttc']:.2f}s, Distance: {radar_result['closest_distance']:.2f}m")
+                    
+                except Exception as radar_e:
+                    print(f"Radar processing error: {radar_e}")
                 
                 # Combine and display all detections
                 try:
-                    combined_img = draw_combined_detections(img, sign_detections, vehicle_detections, traffic_light_detections)
+                    combined_img = draw_combined_detections(img, sign_detections, object_detections, traffic_light_detections)
                     #cv2.imshow('All Detections', combined_img)
                 except Exception as draw_e:
                     print(f"Error drawing detections: {draw_e}")
-
-            # radar_detections, radar_fig = radar_process_frame(
-            #     radar_sensor=radar, 
-            #     speed=speed_kph,
-            #     debug_window=True  # Enable PPI visualization
-            # )
 
             # Lidar Road Boundaries
             try:
@@ -840,8 +857,8 @@ def main():
             if step_i % 80 == 0:
                 timestamp_ns = get_timestamp_ns()
                 # Send vehicle detections
-                if vehicle_detections:
-                    for detection in vehicle_detections:
+                if object_detections:
+                    for detection in object_detections:
                         try:
                             bbox = detection['bbox']
                             vehicle_det_message = {

@@ -1,0 +1,61 @@
+# WIP configuration file for perception module
+perception:
+  lane_detection:
+    cv:
+      sliding_window:
+        num_windows: 7
+        margin: 100
+        min_pixels: 50
+        max_jump: 80
+        max_center_shift: 80
+      gap_size_filling: 20
+    thresholding:
+    fusion:
+      cv_weight: 0.80
+      dl_weight: 0.20
+    confidence:
+      weights:
+      scnn_weights:
+          'num_lines': 0.15
+          'length': 0.15
+          'geometry': 0.25
+          'temporal': 0.15
+          'existence': 0.20      # SCNN-specific: direct lane existence probability
+          'seg_quality': 0.10     # SCNN-specific: segmentation confidence
+        cv_weights:
+          'num_lines': 0.2
+          'length': 0.2
+          'geometry': 0.4
+          'temporal': 0.2
+
+
+
+  sign_detection:
+    confidence_treshold: 0.45
+
+
+  traffic_light_detection:
+    confidence_threshold: 0.2
+
+
+  object_detection:
+    confidence_treshold: 0.4
+
+  radar:
+    radar_filtering:
+      max_range: 100.0
+      min_range: 0.5
+      min_snr: 5.0
+      min_elevation: -5.0
+      max_elevation: 5.0
+      max_azumith: 45.0
+      min_azumith: -45.0
+
+    aeb:
+      ttc_threshold: 2
+      min_range: 5.0
+    acc:
+      target_time_gap: 30 # in meters
+      Kp: 0.02
+      Ki: 0.0
+      Kd: 0.01

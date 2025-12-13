@@ -13,7 +13,7 @@ weights = {
     'num_lines': 0.2,
     'length': 0.2,
     'geometry': 0.4,
-    'temporal': 0.2  # Add temporal consistency weight
+    'temporal': 0.2
 }
 
 

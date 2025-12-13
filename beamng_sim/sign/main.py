@@ -1,10 +1,10 @@
-from beamng_sim.sign.detect_classify import combined_sign_detection_classification
+from beamng_sim.sign.detect_classify import sign_detection_classification
 
-DEFAULT_CONFIDENCE_THRESHOLD = 0.45
+default_threshold = 0.45
 
-def process_frame(img, draw_detections=True, confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD):
+def process_frame(img, confidence_threshold=default_threshold, draw_detections=True, ):
     try:
-        detections = combined_sign_detection_classification(img)
+        detections = sign_detection_classification(img)
         
         if not detections:
             detections = []

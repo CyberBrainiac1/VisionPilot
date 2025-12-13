@@ -1,7 +1,9 @@
-from beamng_sim.vehicle_obstacle.vehicle_obstacle_detection import detect_vehicles_pedestrians
+from beamng_sim.object.object_detection import detect_vehicles_pedestrians
 import cv2
 
-def process_frame(img, draw_detections=True):
+default_threshold = 0.4
+
+def process_frame(img, confidence_threshold=default_threshold, draw_detections=True):
     try:
         detections = detect_vehicles_pedestrians(img)
 
