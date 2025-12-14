@@ -34,6 +34,7 @@
     - [Simulation \& Scenarios](#simulation--scenarios)
     - [Visualization \& Logging](#visualization--logging)
     - [README To-Dos](#readme-to-dos)
+    - [Other](#other)
   - [Legend](#legend)
   - [Engineering Journal](#engineering-journal)
   - [Credits](#credits)
@@ -181,7 +182,9 @@ This demo shows:
 
 
 ## Model Details
-All models are located in the models folder
+All models are located in the models folder.
+
+> **Note:** Model files will be made available for download at a later date. Please check back for updates.
 - **Lane Detection:** SCNN
 - **Traffic Sign Detect/Class:** CNN classifier, YOLOv8 detector
 - **Traffic Light Detect/Class:** YOLOv8 detector, CNN classifier
@@ -189,12 +192,12 @@ All models are located in the models folder
 
 ## Configuration Files
 Configuration files are located in the `beamng_sim/config/` directory:
-> Descriptions of the configuration files can be found in the `config/README.md` file.
+> Descriptions of the configuration files can be found in the `config/README.md` file. (Currently Outdated, will be updated later)
 
 ## Roadmap
 
 ### Perception
-- [x] Sign classification & Detection (CNN / YOLOv11)
+- [x] Sign classification & Detection (CNN / YOLOv11m)
 - [x] Traffic light classification & Detection (CNN / YOLOv11m)
 - [x] Lane detection Fusion (SCNN / CV)
 - [x] Advanced lane detection using OpenCV (robust highway, lighting, outlier handling)
@@ -202,30 +205,32 @@ Configuration files are located in the `beamng_sim/config/` directory:
 - [ ] Blind Spot Monitoring
 - [ ] Real-Time Object Tracking
 - [ ] Handle dashed lines better in lane detection
-- [ ] Stop Sign Yield Sign Detection and Response (Will be implemented after improving sign classification accuracy; currently only warning is possible)
+- [ ] Stop Sign Yield Sign Detection and Response
+- [ ] Dynamic Target Speed based on Speed Limit Signs
 - [ ] Detect multiple lanes
 - [ ] Lane Change Logic
+- [ ] 💤 Road Surface & Condition Detection and Classification
 - [ ] 💤 Multi Camera Setup (Will implement after all other camera-based features are finished)
 - [ ] 💤 Overtaking, Merging (Will be part of Path Planning)
 
 ### Sensor Fusion & Calibration
-- [x] ⭐ Integrate Radar
-- [ ] Multi radar integration (1 front, 2 rear on each side)
+- [x] Integrate Radar
 - [x] Integrate Lidar
-- [ ] Ultrasonic Sensor Integration
+- [ ] Ultrasonic Sensor Integration (Can easily be implemented with prebuilt Beamng ADAS module)
 - [ ] 🔥 Lidar Object Detection
 - [ ] Map Matching algorithm
 - [ ] 💤 💤 SLAM (simultaneous localization and mapping)
-- [ ] 🔥 GPS/IMU sensor
+- [ ] **Sensor Health Monitoring & Redundancy**
+  - [ ] Redundant Front Radar for AEB
+  - [ ] Sensor status diagnostics and failover
 
 ### Control & Planning
 - [x] Integrate vehicle control (Throttle, Steering, Braking Implemented) (PID needs further tuning)
 - [x] Integrate PIDF controller
 - [x] ⭐ Adaptive Cruise Control (Currently only basic Cruise Control implemented)
-- [ ] 🔥 Emergency Braking / Collision Avoidance
-- [ ] Blindspot Monitoring (Can easily be implemented with prebuilt Beamng ADAS module)
+- [ ] 🔥 Emergency Braking / Collision Avoidance (Using Front radar)
+- [ ] Blindspot Monitoring (Using left/right rear radars)
 - [ ] Path planning
-- [ ] 💤 Behaviour planning and anticipation
 - [ ] 💤 End-to-end driving policy learning (RL, imitation learning)
 - [ ] 💤💤 Advanced traffic participant prediction (trajectory, intent)
 
@@ -236,18 +241,24 @@ Configuration files are located in the `beamng_sim/config/` directory:
 - [ ] Traffic scenarios: driving in heavy, moderate, and light traffic
 - [ ] Test Lighting conditions
 - [ ] 💤 Test using actual RC car
-- [ ] 💤💤 Docker containerization
+- [ ] 💤💤 Containerize
 
 ### Visualization & Logging
 - [x] ⭐ Full Foxglove visualization integration
 - [x] Modular YAML configuration system
 - [x] Real-time drive logging and telemetry
 - [ ] 🔥 Real time Annotations Overlay in Foxglove
+- [ ] Live Map Visualization
 
 ### README To-Dos
 - [x] 🔥 Add demo images and videos to README
 - [ ] Add performance benchmarks section
 - [x] Add Table of Contents for easier navigation
+
+### Other
+- [x] Vibe-Code a website for the project
+  
+> Driver Monitoring System would've been pretty cool but human drivers are not implemented in BeamNG.tech
 
 ## Legend
 > 🔥 = High Priority
