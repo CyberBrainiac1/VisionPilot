@@ -588,6 +588,10 @@ def main():
         Kd=control_cfg['speed_pid']['Kd']
     )
 
+    # Speed control mode: 'cruise' (normal), 'adaptive' (ACC), or 'none' (manual)
+    speed_control_mode = control_cfg['speed_control_mode']
+    print(f"Speed control mode: {speed_control_mode}")
+
     frame_count = 0
 
     last_time = time.time()
@@ -681,18 +685,6 @@ def main():
                 except Exception as tl_e:
                     print(f"Traffic light detection error: {tl_e}")
                     traffic_light_detections = []
-
-                try:
-                    radar_front = radars.get('radar_front', None)
-                    radar_result = radar_aeb_acc(radar_front, perception_cfg, speed_kph)
-                    
-                    # AEB/ACC decision logic (to be implemented)
-                    # For now, just log the TTC
-                    if radar_result['ttc'] != float('inf'):
-                        print(f"TTC: {radar_result['ttc']:.2f}s, Distance: {radar_result['closest_distance']:.2f}m")
-                    
-                except Exception as radar_e:
-                    print(f"Radar processing error: {radar_e}")
                 
                 # Combine and display all detections
                 try:
@@ -713,11 +705,57 @@ def main():
             # Lidar Object Detection
             # lidar_detections, lidar_obj_img = lidar_object_detections(lidar, camera_detections=vehicle_detections)
 
-            throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt)
+            throttle = 0.0
+            brake = 0.0
+
+            if speed_control_mode == 'adaptive':
+                try:
+                    radar_front = radars.get('radar_front', None)
+                    radar_result = radar_aeb_acc(radar_front, perception_cfg, speed_kph)
+
+                    ttc = radar_result.get('ttc', float('inf'))
+                    closest_distance = radar_result.get('closest_distance', float('inf'))
+                    closest_velocity = radar_result.get('closest_velocity', float('inf'))
+
+                    if ttc <= 1.0:
+                        # full breaking
+                        print(f"EMERGENCY BRAKING: TTC {ttc:.2f}s, Distance {closest_distance:.2f}m")
+                        throttle = 0.0
+                        brake = 1.0
+                    elif ttc <= 3.0:
+                        # medium breaking
+                        print(f"MEDIUM BRAKING: TTC {ttc:.2f}s, Distance {closest_distance:.2f}m")
+                        throttle = 0.0
+                        brake = 0.3
+                    elif ttc < float('inf'):
+                        # Reduce throttle
+                        print(f"WARNING: TTC {ttc:.2f}s, Distance {closest_distance:.2f}m")
+                        throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt) * 0.5
+                        brake = 0.0
+                    else:
+                        # No object detected - normal cruise control
+                        throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt)
+                        brake = 0.0
+                    
+                except Exception as radar_e:
+                    print(f"Radar processing error: {radar_e}")
+                    throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt)
+                    brake = 0.0
+
+            elif speed_control_mode == 'cruise':
+                # Normal cruise control (no adaptive features)
+                throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt)
+                brake = 0.0
+
+            elif speed_control_mode == 'none':
+                # No automatic speed control manual throttle
+                throttle = 0.0
+                brake = 0.0
             
-            # Steering, throttle, brake inputs
-            previous_steering = steering
-            vehicle.control(steering=steering, throttle=throttle, brake=0.0)
+            # Limit throttle based on steering angle to prevent spinning out
+            throttle = throttle * (1.0 - 0.3 * abs(steering))
+            throttle = np.clip(throttle, 0.05, 0.3)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             frame_count += 1
