@@ -15,10 +15,11 @@
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Demos](#demos)
+    - [Emergency Braking (AEB) Demo](#emergency-braking-aeb-demo)
     - [Sign Detection \& Detection and classification](#sign-detection--detection-and-classification)
   - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
     - [Latest Lane Detection Demo (v2)](#latest-lane-detection-demo-v2)
-      - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
+    - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
   - [Foxglove Visualization Demo](#foxglove-visualization-demo)
   - [Features](#features)
   - [Built With](#built-with)
@@ -54,14 +55,25 @@ A modular Python project for autonomous driving research and prototyping, fully 
 
 ## Demos
 
-### Sign Detection & Detection and classification
+### Emergency Braking (AEB) Demo
 
+Watch the Emergency Braking System (AEB) in action with real-time radar filtering and collision avoidance:
+
+![AEB Demo](images/aeb_gif.gif)
+
+**Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=Z8Y2-MpmrRg)
+
+---
+
+### Sign Detection & Detection and classification
 
 This demo shows real-time traffic sign detection (no classification) on a video:
 
 ![Sign Detection Demo & Vehicle Pedestrian](images/traffic-sign-classification/sign_detection_demo.gif)
 
 **Extended Demo:** [Watch a full video here](https://youtu.be/ujGkQJ2BqV0)
+
+---
 
 ## Traffic Light Detection & Classification Demo
 
@@ -70,6 +82,8 @@ This demo shows real-time traffic light detection and classification on a video:
 ![Traffic Light Detection & Classification Demo](images/traffic-lights/traffic_light_demo.gif)
 
 > Both detection and classification are shown in this demo.
+
+---
 
 ### Latest Lane Detection Demo (v2)
 
@@ -96,6 +110,7 @@ The original demo is still available for reference:
 
 [Lane Keeping & Multi-Model Detection Demo (v1)](https://youtu.be/f9mHigMKME8)
 
+---
 
 ## Foxglove Visualization Demo
 
@@ -112,6 +127,8 @@ This demo shows:
 - Modular Python pipeline for sensor fusion and control
 
 > More demo videos and visualizations will be added as features are completed.
+
+---
 
 ## Features
 
