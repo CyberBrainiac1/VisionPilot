@@ -158,7 +158,7 @@ def main():
         bng,
         vehicle,
         requested_update_time=0.05,
-        pos=(0, -3.5, 0.5),
+        pos=(0, -3.5, 1.5),
         dir=(0, -1, 0),
         up=(0, 0, 1),
         size=(200, 200),
@@ -172,7 +172,7 @@ def main():
         azimuth_bins=64,
         vel_bins=32,
         half_angle_deg=9,
-        is_visualised=True
+        is_visualised=False
     )
 
     radar_cfg = load_radar_config()
@@ -197,7 +197,7 @@ def main():
     try:
         while True:
             try:
-                bng.control.step(10)
+                bng.control.step(5)
 
                 vehicle.poll_sensors()
                 state = vehicle.state
@@ -235,7 +235,7 @@ def main():
                 if ttc <= 0.5:
                     print(f"EMERGENCY BRAKING: TTC {ttc:.2f}s, Distance {closest_distance:.2f}m")
                     throttle = 0.0
-                    brake = 1.0
+                    brake = 0.9
                 elif ttc <= 1.5:
                     print(f"HARD BRAKING: TTC {ttc:.2f}s, Distance {closest_distance:.2f}m")
                     throttle = 0.0
@@ -260,6 +260,7 @@ def main():
                 brake = float(np.clip(brake, 0.0, 1.0))
                 
                 try:
+                    print(f"Applying control: T={throttle:.2f}, B={brake:.2f}")
                     vehicle.control(throttle=throttle, brake=brake, steering=0.0)
                     time.sleep(0.01)
                 except Exception as control_e:

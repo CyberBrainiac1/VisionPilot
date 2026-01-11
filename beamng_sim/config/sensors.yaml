@@ -47,7 +47,7 @@ etk800:
     name: "radar_front"
     enabled: true
     requested_update_time: 0.05
-    pos: [ 0, -2.5, 0.5 ]
+    pos: [ 0, -3.5, 1.0 ]
     dir: [ 0, -1, 0 ]
     up: [ 0, 0, 1 ]
     size: [ 200, 200 ]
