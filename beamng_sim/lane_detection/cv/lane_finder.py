@@ -47,7 +47,6 @@ def sliding_window_search(binary_warped, histogram, debug_display=False):
     Returns:
         Tuple of (ploty, left_fit, right_fit, left_fitx, right_fitx, is_dashed_lane)
     """
-    # Additional filtering state
     if not hasattr(sliding_window_search, 'last_lane_center'):
         sliding_window_search.last_lane_center = None
     if not hasattr(sliding_window_search, 'last_lane_width'):
@@ -63,7 +62,7 @@ def sliding_window_search(binary_warped, histogram, debug_display=False):
     leftx_base = np.argmax(histogram[:midpoint])
     rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
-    # Reduced from 9 to 7 windows for better performance
+    # reduced from 9 to 7
     nwindows = 7
     window_height = int(binary_warped.shape[0]/nwindows)
     nonzero = binary_warped.nonzero()
@@ -71,16 +70,14 @@ def sliding_window_search(binary_warped, histogram, debug_display=False):
     nonzerox = np.array(nonzero[1])
     leftx_current = leftx_base
     rightx_current = rightx_base
-    margin = 100  # Use symmetric margin for both lanes
+    margin = 100
 
     is_dashed_lane = detect_lane_type(binary_warped)
     minpix = 30 if is_dashed_lane else 50
 
-    # Pre-allocate arrays instead of using lists
     left_lane_inds = np.empty(0, dtype=np.int32)
     right_lane_inds = np.empty(0, dtype=np.int32)
     
-    # Only create visualization if needed
     out_img = None
     if debug_display:
         out_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
@@ -104,7 +101,7 @@ def sliding_window_search(binary_warped, histogram, debug_display=False):
         good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
                           (nonzerox >= win_xright_low) &  (nonzerox < win_xright_high)).nonzero()[0]
         
-        # Use np.append instead of list.append (pre-allocated arrays)
+        # Use np.append instead of list.append
         left_lane_inds = np.append(left_lane_inds, good_left_inds)
         right_lane_inds = np.append(right_lane_inds, good_right_inds)
         
@@ -205,7 +202,6 @@ def sliding_window_search(binary_warped, histogram, debug_display=False):
                 right_ss_res_deg2 = np.sum(right_residuals_deg2**2)
                 right_r_squared_deg2 = 1 - (right_ss_res_deg2 / right_ss_tot) if right_ss_tot > 0 else 0
                 
-                # If degree 2 is significantly better (>0.95 R²) and not too curvy yet, use it
                 if (left_r_squared_deg2 > 0.95 and right_r_squared_deg2 > 0.95 and 
                     abs(left_fit_deg2[0]) < 0.0005 and abs(right_fit_deg2[0]) < 0.0005):
                     left_fit = left_fit_deg2
@@ -217,12 +213,10 @@ def sliding_window_search(binary_warped, histogram, debug_display=False):
                     right_fit = np.polyfit(righty, rightx, 3)
                     degree_used = 3
 
-            # Evaluate polynomial at each point
             left_fitx = np.polyval(left_fit, ploty)
             right_fitx = np.polyval(right_fit, ploty)
             lane_width_check = abs(right_fitx[-1] - left_fitx[-1])
             
-            # Only draw on output image if visualization is enabled
             if debug_display and out_img is not None:
                 left_inds_int = left_lane_inds.astype(int)
                 right_inds_int = right_lane_inds.astype(int)

@@ -14,7 +14,6 @@
 - [VisionPilot: Autonomous Driving Simulation, Computer Vision \& Real-Time Perception (BeamNG.tech)](#visionpilot-autonomous-driving-simulation-computer-vision--real-time-perception-beamngtech)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
-  - [Features](#features)
   - [Demos](#demos)
     - [Emergency Braking (AEB) Demo](#emergency-braking-aeb-demo)
     - [Sign Detection \& Detection and classification](#sign-detection--detection-and-classification)
@@ -23,8 +22,6 @@
       - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
   - [Foxglove Visualization Demo](#foxglove-visualization-demo)
   - [Built With](#built-with)
-  - [Datasets Used](#datasets-used)
-  - [Model Details](#model-details)
   - [Sensor Suite](#sensor-suite)
   - [Configuration Files](#configuration-files)
   - [Roadmap](#roadmap)
@@ -36,32 +33,22 @@
     - [README To-Dos](#readme-to-dos)
     - [Other](#other)
   - [Legend](#legend)
-  - [Engineering Journal](#engineering-journal)
   - [Credits](#credits)
     - [BeamNG.tech Citation](#beamngtech-citation)
 
 ## Overview
 
+
 A modular Python project for autonomous driving research and prototyping, fully integrated with the BeamNG.tech simulator and Foxglove visualization. This system combines traditional computer vision and state-of-the-art deep learning (CNN, U-Net, YOLO, SCNN) with real-time sensor fusion and autonomous vehicle control to tackle:
 
-- Lane detection (Traditional CV, SCNN, capable of highway scenarios)
-- Traffic sign classification & detection (CNN, YOLOv8)
-- Traffic light detection & classification (YOLOv8, CV, CNN)
-- Vehicle & pedestrian detection and recognition (YOLOv8)
-- Multi-sensor fusion (Camera, LiDAR, Radar)
+- Lane detection (Traditional CV, SCNN, OpenCV; capable of highway scenarios)
+- Traffic sign classification & detection (CNN, YOLOv11)
+- Traffic light detection & classification (YOLOv11, CNN)
+- Vehicle & pedestrian detection and recognition (YOLOv11)
+- Multi-sensor fusion (Camera, LiDAR, Radar, GPS, IMU)
 - Multi-model inference, real-time simulation, autonomous driving with PID control (BeamNG.tech)
-- Real-time visualization and monitoring (Foxglove WebSocket)
-
-## Features
-
-- Lane detection with SCNN and traditional OpenCV
-- Traffic Sign Classification + Detection
-- Traffic Light Classification + Detection
-- Vehicle & Pedestrian Detection
-- Multi-sensor fusion (Camera, LiDAR, Radar)
-- Real-time autonomous driving with PID control
 - Cruise control
-- Real-time visualization via Foxglove WebSocket
+- Real-time visualization and monitoring (Foxglove WebSocket)
 - Modular configuration system (YAML-based)
 - Drive logging and telemetry
 
@@ -71,7 +58,9 @@ A modular Python project for autonomous driving research and prototyping, fully 
 
 Watch the Emergency Braking System (AEB) in action with real-time radar filtering and collision avoidance:
 
-![AEB Demo](images/aeb_gif.gif)
+<img src="images/aeb_gif.gif" alt="AEB Demo" width="400" height="225" />
+
+**At a Glance:** Radar-based collision avoidance, real-time braking, AEB logic.
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=Z8Y2-MpmrRg)
 
@@ -79,38 +68,31 @@ Watch the Emergency Braking System (AEB) in action with real-time radar filterin
 
 ### Sign Detection & Detection and classification
 
-This demo shows real-time traffic sign detection (no classification) on a video:
+This demo shows real-time traffic sign detection and classification:
 
-![Sign Detection Demo & Vehicle Pedestrian](images/traffic-sign-classification/sign_detection_demo.gif)
+<img src="images/traffic-sign-classification/sign_detection_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="400" height="225" />
 
-**Extended Demo:** [Watch a full video here](https://youtu.be/ujGkQJ2BqV0)
+**Extended Demo:** [Watch the full video here](https://youtu.be/ujGkQJ2BqV0)
 
 ---
 
 ## Traffic Light Detection & Classification Demo
 
-This demo shows real-time traffic light detection and classification on a video:
+This demo shows real-time traffic light detection and classification:
 
-![Traffic Light Detection & Classification Demo](images/traffic-lights/traffic_light_demo.gif)
+<img src="images/traffic-lights/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="400" height="225" />
 
-> Both detection and classification are shown in this demo.
+> No extended Demo avaliable yet.
 
 ---
 
 ### Latest Lane Detection Demo (v2)
 
-Watch the improved autonomous lane keeping demo (v2) in BeamNG.tech, featuring smoother fused CV+SCNN lane detection, stable PID steering, and robust adaptive cruise control:
+Watch the improved autonomous lane keeping demo (v2) in BeamNG.tech, featuring smoother fused CV+SCNN lane detection, stable PID steering, and robust cruise control:
 
-[![Autonomous Lane Keeping v2 Demo](https://img.youtube.com/vi/7eA_XfIkLWQ/0.jpg)](https://www.youtube.com/watch?v=7eA_XfIkLWQ)
+<img src="images/lane.gif" alt="Lane Detection Demo" width="400" height="225" />
 
-Watch on YouTube: [https://www.youtube.com/watch?v=7eA_XfIkLWQ](https://www.youtube.com/watch?v=7eA_XfIkLWQ)
-
-This v2 demo shows:
-- Autonomous lane keeping with tuned PID steering (stable, minimal oscillation)
-- Fused CV & SCNN lane detection (smoother, more robust)
-- Adaptive cruise control (ACC) holding ~50 km/h
-- Handles shadows, bridges, and recovers from distractions
-- Real-time visualization and multi-model inference
+**Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=7eA_XfIkLWQ)
 
 > Note: Very low-light (tunnel) scenarios are not yet supported.
 
@@ -126,17 +108,12 @@ The original demo is still available for reference:
 
 ## Foxglove Visualization Demo
 
+
 See real-time LiDAR point cloud streaming and autonomous vehicle telemetry in Foxglove Studio:
 
-[![Foxglove LiDAR Visualization Demo](https://img.youtube.com/vi/4HJDvL2Q6AY/0.jpg)](https://www.youtube.com/watch?v=4HJDvL2Q6AY)
+<img src="images/foxglove.gif" alt="Foxglove Visualization Demo" width="400" height="225" />
 
-Watch on YouTube: [https://www.youtube.com/watch?v=4HJDvL2Q6AY](https://www.youtube.com/watch?v=4HJDvL2Q6AY)
-
-This demo shows:
-- Real-time LiDAR point cloud visualization
-- Foxglove Studio WebSocket integration
-- Autonomous vehicle simulation with BeamNG.tech
-- Modular Python pipeline for sensor fusion and control
+**Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=4HJDvL2Q6AY)
 
 > More demo videos and visualizations will be added as features are completed.
 
@@ -151,23 +128,6 @@ This demo shows:
 - **Computer Vision:** OpenCV, YOLO (Ultralytics)
 - **Language:** Python 3.8+
 - **Control Systems:** PID controllers, sensor fusion
-
-
-## Datasets Used
-
-- **CU Lane Dataset** for lane segmentation
-- **DLDT / LISA** for traffic light classification & detection
-- **Mapillary** for sign detection
-- **BDD** for vehicle and pedestrian detection
-- **TUSimple** for SCNN lane detection
-
-## Model Details
-
-> **Note:** Model files will be made available for download at a later date. Please check back for updates.
-- **Lane Detection:** SCNN
-- **Traffic Sign Detect/Class:** CNN classifier, YOLOv8 detector
-- **Traffic Light Detect/Class:** YOLOv8 detector, CNN classifier
-- **Vehicle/Pedestrian:** YOLOv8
 
 ## Sensor Suite
 
@@ -275,12 +235,6 @@ Configuration files are located in the `beamng_sim/config/` directory:
 > 💤 = Minimal Priority, can be addressed later
 
 > 💤💤 = Very Low Priority, may not be implement
-
-## Engineering Journal
-
-You can access the periodically updated engineering journal here:
-
-[Engineering Journal (Google Drive)](https://drive.google.com/file/d/15garXT9LaYUK_GlcT68EEbLpoLRc_XoL/view?usp=share_link)
 
 ## Credits
 - Datasets: CU Lane, LISA, GTRSB, Mapillary, BDD100K

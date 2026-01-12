@@ -15,15 +15,15 @@ DISTORTION_COEFFS = np.array([0.0, 0.0, 0.0, 0.0, 0.0])  # Assuming negligible d
 
 CAMERA_CONFIGS = {
     'q8_andronisk': {
-        'height': 1.466,      # meters - from sensors.yaml pos[2]
-        'pitch': 0,          # degrees - approximate pitch angle
+        'height': 1.466,
+        'pitch': 0,
         'resolution': (1920, 1080),
         'mtx': INTRINSIC_MATRIX,
         'dist': DISTORTION_COEFFS
     },
     'etk800': {
-        'height': 1.36,       # meters - from sensors.yaml pos[2]
-        'pitch': 0,          # degrees - approximate pitch angle
+        'height': 1.36,
+        'pitch': 0,
         'resolution': (1920, 1080),
         'mtx': INTRINSIC_MATRIX,
         'dist': DISTORTION_COEFFS
@@ -110,12 +110,10 @@ def get_dynamic_src_points(calibration_data, speed=0, cam_config=None):
     mtx = calibration_data['mtx']
     
     speed_norm = min(speed / 120.0, 1.0)
-    look_ahead_start = 3.0 + (5.0 * speed_norm)   # Start 3m - 8m ahead
-    look_ahead_end   = 15.0 + (20.0 * speed_norm) # End 15m - 35m ahead
-    lane_width_roi   = 3.5  # Width of road area to capture (meters)
+    look_ahead_start = 3.0 + (5.0 * speed_norm)
+    look_ahead_end   = 15.0 + (20.0 * speed_norm)
+    lane_width_roi   = 3.5 
     
-    # World Points (X, Z) -> (Lateral, Longitudinal)
-    # Order: Bottom-Left, Bottom-Right, Top-Right, Top-Left
     world_roi = [
         [-lane_width_roi, look_ahead_start], # BL
         [ lane_width_roi, look_ahead_start], # BR
@@ -123,10 +121,8 @@ def get_dynamic_src_points(calibration_data, speed=0, cam_config=None):
         [-lane_width_roi, look_ahead_end]    # TL
     ]
     
-    # 2. Get Rotation Matrix
     R = get_camera_extrinsics(cam_config['height'], cam_config['pitch'])
-    
-    # 3. Project to Pixels
+
     src_pixels = project_world_to_image(world_roi, mtx, R, cam_config['height'])
     
     return src_pixels
@@ -202,7 +198,6 @@ def perspective_warp(img, speed=0, calibration_data=None, vehicle_model='q8_andr
         Minv: Inverse perspective transform matrix
     """
     
-    # 1. Undistort
     if calibration_data is not None:
         img = undistort_image(img, calibration_data)
         mtx = calibration_data.get('mtx')
@@ -212,11 +207,9 @@ def perspective_warp(img, speed=0, calibration_data=None, vehicle_model='q8_andr
     img_size = (img.shape[1], img.shape[0])
     w, h = img_size
     
-    # 2. Get camera configuration
     if vehicle_model in CAMERA_CONFIGS:
         cam_config = CAMERA_CONFIGS[vehicle_model]
     else:
-        # Use provided heights/pitch or defaults
         if cam_height is None:
             cam_height = 1.4
         if cam_pitch is None:
