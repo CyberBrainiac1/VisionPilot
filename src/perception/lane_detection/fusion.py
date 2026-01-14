@@ -1,4 +1,4 @@
-from beamng_sim.lane_detection.metrics import process_deviation
+from src.perception.lane_detection.metrics import process_deviation
 
 def fuse_lane_metrics(cv_metrics, cv_conf, dl_metrics, dl_conf, method_name="DL"):
     """

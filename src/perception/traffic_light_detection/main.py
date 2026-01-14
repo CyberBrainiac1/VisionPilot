@@ -1,4 +1,4 @@
-from beamng_sim.traffic_light.detect_classify import detect_traffic_lights
+from src.perception.traffic_light_detection.detect_classify import detect_traffic_lights
 
 default_threshold = 0.2
 

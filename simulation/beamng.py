@@ -4,7 +4,7 @@ import yaml
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from beamng_sim.utils.pid_controller import PIDController
+from src.utils.pid_controller import PIDController
 
 from beamngpy import BeamNGpy, Scenario, Vehicle
 from beamngpy.sensors import Camera, Lidar, Radar, GPS, AdvancedIMU
@@ -24,17 +24,17 @@ import cv2
 from scipy.spatial.transform import Rotation as R
 
 
-from beamng_sim.lane_detection.main import process_frame_cv as lane_detection_cv_process_frame
-from beamng_sim.lane_detection.main import process_frame_scnn as lane_detection_scnn_process_frame
-from beamng_sim.sign.main import process_frame as sign_process_frame
-from beamng_sim.traffic_light.main import process_frame as traffic_light_process_frame
-from beamng_sim.object.main import process_frame as object_process_frame
-from beamng_sim.lidar.main import process_frame as lidar_process_frame
-from beamng_sim.radar.main import process_frame as radar_process_frame
+from src.perception.lane_detection.main import process_frame_cv as lane_detection_cv_process_frame
+from src.perception.lane_detection.main import process_frame_scnn as lane_detection_scnn_process_frame
+from src.perception.sign_detection.main import process_frame as sign_process_frame
+from src.perception.traffic_light_detection.main import process_frame as traffic_light_process_frame
+from src.perception.object_detection.main import process_frame as object_process_frame
+from src.sensor_fusion.lidar.main import process_frame as lidar_process_frame
+from src.sensor_fusion.radar.main import process_frame as radar_process_frame
 
-from beamng_sim.lane_detection.fusion import fuse_lane_metrics
+from src.perception.lane_detection.fusion import fuse_lane_metrics
 
-from beamng_sim.foxglove_integration.bridge_instance import bridge
+from simulation.foxglove_integration.bridge_instance import bridge
 
 MODELS = {}
 
@@ -97,7 +97,7 @@ def load_models():
     print("Traffic Light detection model loaded")
     
     # Lane detection SCNN model
-    from beamng_sim.lane_detection.scnn.scnn_model import SCNN
+    from src.perception.lane_detection.scnn.scnn_model import SCNN
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"SCNN will run on: {device}")
     

@@ -17,13 +17,11 @@
   - [Demos](#demos)
     - [Emergency Braking (AEB) Demo](#emergency-braking-aeb-demo)
     - [Sign Detection \& Detection and classification](#sign-detection--detection-and-classification)
-    - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
+  - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
     - [Latest Lane Detection Demo (v2)](#latest-lane-detection-demo-v2)
       - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
   - [Foxglove Visualization Demo](#foxglove-visualization-demo)
-  - [Built With](#built-with)
   - [Sensor Suite](#sensor-suite)
-  - [Configuration Files](#configuration-files)
   - [Roadmap](#roadmap)
     - [Perception](#perception)
     - [Sensor Fusion \& Calibration](#sensor-fusion--calibration)
@@ -58,9 +56,7 @@ A modular Python project for autonomous driving research and prototyping, fully 
 
 Watch the Emergency Braking System (AEB) in action with real-time radar filtering and collision avoidance:
 
-<img src="images/aeb_gif.gif" alt="AEB Demo" width="400" height="225" />
-
-**At a Glance:** Radar-based collision avoidance, real-time braking, AEB logic.
+<img src="images/demo_gifs/aeb_gif.gif" alt="AEB Demo" width="400" height="225" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=Z8Y2-MpmrRg)
 
@@ -70,7 +66,7 @@ Watch the Emergency Braking System (AEB) in action with real-time radar filterin
 
 This demo shows real-time traffic sign detection and classification:
 
-<img src="images/traffic-sign-classification/sign_detection_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="400" height="225" />
+<img src="images/demo_gifs/sign_detection_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="400" height="225" />
 
 **Extended Demo:** [Watch the full video here](https://youtu.be/ujGkQJ2BqV0)
 
@@ -80,7 +76,7 @@ This demo shows real-time traffic sign detection and classification:
 
 This demo shows real-time traffic light detection and classification:
 
-<img src="images/traffic-lights/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="400" height="225" />
+<img src="images/demo_gifs/traffic-lights/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="400" height="225" />
 
 > No extended Demo avaliable yet.
 
@@ -90,7 +86,7 @@ This demo shows real-time traffic light detection and classification:
 
 Watch the improved autonomous lane keeping demo (v2) in BeamNG.tech, featuring smoother fused CV+SCNN lane detection, stable PID steering, and robust cruise control:
 
-<img src="images/lane.gif" alt="Lane Detection Demo" width="400" height="225" />
+<img src="images/demo_gifs/lane.gif" alt="Lane Detection Demo" width="400" height="225" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=7eA_XfIkLWQ)
 
@@ -111,23 +107,13 @@ The original demo is still available for reference:
 
 See real-time LiDAR point cloud streaming and autonomous vehicle telemetry in Foxglove Studio:
 
-<img src="images/foxglove.gif" alt="Foxglove Visualization Demo" width="400" height="225" />
+<img src="images/demo_gifs/foxglove.gif" alt="Foxglove Visualization Demo" width="400" height="225" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=4HJDvL2Q6AY)
 
 > More demo videos and visualizations will be added as features are completed.
 
 ---
-
-
-## Built With
-
-- **Simulation:** BeamNG.tech (https://www.beamng.tech/)
-- **Visualization:** Foxglove Studio (WebSocket real-time visualization)
-- **Deep Learning:** TensorFlow / Keras, PyTorch
-- **Computer Vision:** OpenCV, YOLO (Ultralytics)
-- **Language:** Python 3.8+
-- **Control Systems:** PID controllers, sensor fusion
 
 ## Sensor Suite
 
@@ -144,9 +130,9 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 <table>
   <tr>
-    <td align="center"><img src="beamng_sim/beamng_img/sensors.png" alt="Sensor Array 1" width="280"/></td>
-    <td align="center"><img src="beamng_sim/beamng_img/radar_front.png" alt="Sensor Array 2" width="280"/></td>
-    <td align="center"><img src="beamng_sim/beamng_img/lidar.png" alt="Sensor Array 3" width="280"/></td>
+    <td align="center"><img src="images/beamng_images/sensors.png" alt="Sensor Array 1" width="280"/></td>
+    <td align="center"><img src="images/beamng_images/radar_front.png" alt="Sensor Array 2" width="280"/></td>
+    <td align="center"><img src="images/beamng_images/lidar.png" alt="Sensor Array 3" width="280"/></td>
   </tr>
   <tr>
     <td align="center"><em>Sensor Array</em></td>
@@ -155,9 +141,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
   </tr>
 </table>
 
-## Configuration Files
-Configuration files are located in the `beamng_sim/config/` directory:
-> Descriptions of the configuration files can be found in the `config/README.md` file. (Currently Outdated, will be updated later)
+> Configuration files are located in the `beamng_sim/config/` directory:
 
 ## Roadmap
 
@@ -224,6 +208,7 @@ Configuration files are located in the `beamng_sim/config/` directory:
 
 ### Other
 - [x] Vibe-Code a website for the project
+- [ ] Redo project structure for better modularity
   
 > Driver Monitoring System would've been pretty cool but human drivers are not implemented in BeamNG.tech
 

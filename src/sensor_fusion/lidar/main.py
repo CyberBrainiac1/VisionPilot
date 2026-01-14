@@ -1,4 +1,4 @@
-from beamng_sim.lidar.lidar import collect_lidar_data
+from src.sensor_fusion.lidar import collect_lidar_data
 import numpy as np
 
 from .lane_boundry import detect_lane_boundaries

@@ -1,4 +1,4 @@
-from beamng_sim.sign.detect_classify import sign_detection_classification
+from src.perception.sign_detection.detect_classify import sign_detection_classification
 
 default_threshold = 0.45
 

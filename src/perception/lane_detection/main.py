@@ -1,15 +1,15 @@
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from beamng_sim.lane_detection.cv.thresholding import apply_thresholds_with_voting
-from beamng_sim.lane_detection.perspective import debug_perspective_live, get_src_points, perspective_warp
-from beamng_sim.lane_detection.cv.lane_finder import get_histogram, sliding_window_search, detect_lane_type, fill_dashed_lane_gaps
-from beamng_sim.lane_detection.metrics import calculate_curvature_and_deviation
-from beamng_sim.lane_detection.visualization import draw_lane_overlay, add_text_overlay, create_mask_overlay
-from beamng_sim.lane_detection.scnn.postprocess import run_scnn_on_frame
+from src.perception.lane_detection.cv.thresholding import apply_thresholds_with_voting
+from src.perception.lane_detection.cv.perspective import debug_perspective_live, get_src_points, perspective_warp
+from src.perception.lane_detection.cv.lane_finder import get_histogram, sliding_window_search, detect_lane_type, fill_dashed_lane_gaps
+from src.perception.lane_detection.metrics import calculate_curvature_and_deviation
+from src.perception.lane_detection.visualization import draw_lane_overlay, add_text_overlay, create_mask_overlay
+from src.perception.lane_detection.scnn.postprocess import run_scnn_on_frame
 
-from beamng_sim.lane_detection.confidence import compute_confidence_cv
-from beamng_sim.lane_detection.confidence import compute_confidence_scnn
+from src.perception.lane_detection.confidence import compute_confidence_cv
+from src.perception.lane_detection.confidence import compute_confidence_scnn
 
 
 import numpy as np

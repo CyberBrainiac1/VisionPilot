@@ -1,4 +1,4 @@
-from beamng_sim.object.object_detection import detect_vehicles_pedestrians
+from src.perception.object_detection import detect_vehicles_pedestrians
 import cv2
 
 default_threshold = 0.4
