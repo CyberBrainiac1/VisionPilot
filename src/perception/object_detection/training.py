@@ -8,7 +8,10 @@ from tqdm import tqdm
 from ultralytics import YOLO
 
 INPUT_ROOT = Path('/kaggle/input/bdd-dataset-100k')
-TRAIN_IMAGES_DIR = INPUT_ROOT / 'bdd100k/images/100k/train'
+TRAIN_IMAGES_DIRS = [
+    INPUT_ROOT / 'bdd100k/images/100k/train/trainA',
+    INPUT_ROOT / 'bdd100k/images/100k/train/trainB'
+]
 VAL_IMAGES_DIR = INPUT_ROOT / 'bdd100k/images/100k/val'
 TRAIN_LABELS_JSON = INPUT_ROOT / 'labels/bdd100k_labels_images_train.json'
 VAL_LABELS_JSON = INPUT_ROOT / 'labels/bdd100k_labels_images_val.json'
@@ -36,11 +39,12 @@ CLASS_MAPPING = {
 
 CLASSES = list(CLASS_MAPPING.keys())
 
-SUBSET_SIZE = 20000
 IMG_SIZE = 640
 BATCH_SIZE = 32
-EPOCHS = 50
-PATIENCE = 10
+EPOCHS = 100
+PATIENCE = 20
+RESUME_FROM_CHECKPOINT = False
+CHECKPOINT_PATH = None  # Starting fresh with v11m
 
 def convert_box_to_yolo(box2d, img_width=1280, img_height=720):
     """
@@ -62,7 +66,6 @@ def convert_box_to_yolo(box2d, img_width=1280, img_height=720):
     w /= img_width
     h /= img_height
 
-    # Clip values to [0, 1] just in case
     cx = max(0, min(1, cx))
     cy = max(0, min(1, cy))
     w = max(0, min(1, w))
@@ -70,10 +73,14 @@ def convert_box_to_yolo(box2d, img_width=1280, img_height=720):
 
     return cx, cy, w, h
 
-def process_dataset(json_path, raw_images_dir, split, num_samples=None):
+def process_dataset(json_path, raw_images_dirs, split, num_samples=None):
     """
     Reads annotation JSON, selects a subset, creates label files, and copies images.
+    raw_images_dirs can be a single Path or a list of Paths (for trainA/trainB).
     """
+    if not isinstance(raw_images_dirs, list):
+        raw_images_dirs = [raw_images_dirs]
+    
     print(f"Processing {split} dataset...")
     
     with open(json_path, 'r') as f:
@@ -111,13 +118,18 @@ def process_dataset(json_path, raw_images_dir, split, num_samples=None):
             with open(LABELS_DIR / split / label_filename, 'w') as lf:
                 lf.write('\n'.join(yolo_labels))
             
-            src_image_path = raw_images_dir / image_name
-            dst_image_path = IMAGES_DIR / split / image_name
+            src_image_path = None
+            for images_dir in raw_images_dirs:
+                potential_path = images_dir / image_name
+                if potential_path.exists():
+                    src_image_path = potential_path
+                    break
             
-            if src_image_path.exists():
+            if src_image_path:
+                dst_image_path = IMAGES_DIR / split / image_name
                 shutil.copy(src_image_path, dst_image_path)
             else:
-                print(f"Warning: Image {src_image_path} not found.")
+                print(f"Warning: Image {image_name} not found in any source directory.")
 
 def create_data_yaml():
     yaml_content = {
@@ -134,22 +146,32 @@ def create_data_yaml():
     return yaml_path
 
 if __name__ == '__main__':
+    print("Clearing old dataset")
+    if IMAGES_DIR.exists():
+        shutil.rmtree(IMAGES_DIR)
+    if LABELS_DIR.exists():
+        shutil.rmtree(LABELS_DIR)
+    
+    for split in ['train', 'val']:
+        (IMAGES_DIR / split).mkdir(parents=True, exist_ok=True)
+        (LABELS_DIR / split).mkdir(parents=True, exist_ok=True)
+    
     if TRAIN_LABELS_JSON.exists():
-        process_dataset(TRAIN_LABELS_JSON, TRAIN_IMAGES_DIR, 'train', num_samples=SUBSET_SIZE)
+        process_dataset(TRAIN_LABELS_JSON, TRAIN_IMAGES_DIRS, 'train', num_samples=None)
     else:
         print(f"Error: Training labels not found at {TRAIN_LABELS_JSON}")
 
     if VAL_LABELS_JSON.exists():
-        process_dataset(VAL_LABELS_JSON, VAL_IMAGES_DIR, 'val', num_samples=2000) 
+        process_dataset(VAL_LABELS_JSON, VAL_IMAGES_DIR, 'val', num_samples=None) 
     else:
         print(f"Error: Validation labels not found at {VAL_LABELS_JSON}")
 
     yaml_path = create_data_yaml()
     print(f"Data config created at: {yaml_path}")
 
-    print("Starting Training")
+    print("Starting Training with YOLOv11m from scratch")
     
-    model = YOLO('yolo11s.pt')
+    model = YOLO('yolov11m.pt')
 
     results = model.train(
         data=str(yaml_path),
@@ -158,10 +180,11 @@ if __name__ == '__main__':
         batch=BATCH_SIZE,
         patience=PATIENCE,   # Early stopping
         project='bdd100k_training',
-        name='yolov11s_subset_20k',
+        name='yolov11m_full_100k',
         exist_ok=True,       # Overwrite existing run
         device=0,
-        verbose=True
+        verbose=True,
+        resume=RESUME_FROM_CHECKPOINT  # Resume training from checkpoint
     )
     
     print("Training Complete.")

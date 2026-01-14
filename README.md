@@ -17,10 +17,10 @@
   - [Demos](#demos)
     - [Emergency Braking (AEB) Demo](#emergency-braking-aeb-demo)
     - [Sign Detection \& Detection and classification](#sign-detection--detection-and-classification)
-  - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
+    - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
     - [Latest Lane Detection Demo (v2)](#latest-lane-detection-demo-v2)
       - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
-  - [Foxglove Visualization Demo](#foxglove-visualization-demo)
+    - [Foxglove Visualization Demo](#foxglove-visualization-demo)
   - [Sensor Suite](#sensor-suite)
   - [Roadmap](#roadmap)
     - [Perception](#perception)
@@ -30,9 +30,7 @@
     - [Visualization \& Logging](#visualization--logging)
     - [README To-Dos](#readme-to-dos)
     - [Other](#other)
-  - [Legend](#legend)
-  - [Credits](#credits)
-    - [BeamNG.tech Citation](#beamngtech-citation)
+
 
 ## Overview
 
