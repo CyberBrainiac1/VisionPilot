@@ -43,8 +43,8 @@ IMG_SIZE = 640
 BATCH_SIZE = 32
 EPOCHS = 100
 PATIENCE = 20
-RESUME_FROM_CHECKPOINT = False
-CHECKPOINT_PATH = None
+RESUME_FROM_CHECKPOINT = True
+CHECKPOINT_PATH = '/kaggle/input/checkpoint-objdet/other/objectdetyolom/1/last.pt'
 
 def convert_box_to_yolo(box2d, img_width=1280, img_height=720):
     """
@@ -169,9 +169,12 @@ if __name__ == '__main__':
     yaml_path = create_data_yaml()
     print(f"Data config created at: {yaml_path}")
 
-    print("Starting Training with YOLOv11m from scratch")
-    
-    model = YOLO('yolov11m.pt')
+    if RESUME_FROM_CHECKPOINT:
+        print(f"Resuming training from checkpoint: {CHECKPOINT_PATH}")
+        model = YOLO(CHECKPOINT_PATH)
+    else:
+        print("Starting Training with YOLOv11m from scratch")
+        model = YOLO('yolov11m.pt')
 
     results = model.train(
         data=str(yaml_path),

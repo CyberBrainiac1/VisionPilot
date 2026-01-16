@@ -12,6 +12,7 @@ __pycache__/
 
 *.h5
 *.keras
+*.pt
 
 *.pkl
 *.zip

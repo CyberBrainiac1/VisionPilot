@@ -28,8 +28,16 @@
     - [Control \& Planning](#control--planning)
     - [Simulation \& Scenarios](#simulation--scenarios)
     - [Visualization \& Logging](#visualization--logging)
+    - [Deployment \& Infrastructure](#deployment--infrastructure)
     - [README To-Dos](#readme-to-dos)
     - [Other](#other)
+  - [Note on Installation](#note-on-installation)
+  - [Known Limitations](#known-limitations)
+    - [Simulator-Specific Limitations](#simulator-specific-limitations)
+  - [Credits](#credits)
+  - [Citation](#citation)
+    - [BeamNG.tech Citation](#beamngtech-citation)
+  - [License](#license)
 
 
 ## Overview
@@ -54,7 +62,7 @@ A modular Python project for autonomous driving research and prototyping, fully 
 
 Watch the Emergency Braking System (AEB) in action with real-time radar filtering and collision avoidance:
 
-<img src="images/demo_gifs/aeb_gif.gif" alt="AEB Demo" width="400" height="225" />
+<img src="images/demo_gifs/aeb_gif.gif" alt="AEB Demo" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=Z8Y2-MpmrRg)
 
@@ -64,7 +72,7 @@ Watch the Emergency Braking System (AEB) in action with real-time radar filterin
 
 This demo shows real-time traffic sign detection and classification:
 
-<img src="images/demo_gifs/sign_detection_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="400" height="225" />
+<img src="images/demo_gifs/sign_detection_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://youtu.be/ujGkQJ2BqV0)
 
@@ -74,7 +82,7 @@ This demo shows real-time traffic sign detection and classification:
 
 This demo shows real-time traffic light detection and classification:
 
-<img src="images/demo_gifs/traffic-lights/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="400" height="225" />
+<img src="images/demo_gifs/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="600" height="337" />
 
 > No extended Demo avaliable yet.
 
@@ -84,13 +92,11 @@ This demo shows real-time traffic light detection and classification:
 
 Watch the improved autonomous lane keeping demo (v2) in BeamNG.tech, featuring smoother fused CV+SCNN lane detection, stable PID steering, and robust cruise control:
 
-<img src="images/demo_gifs/lane.gif" alt="Lane Detection Demo" width="400" height="225" />
+<img src="images/demo_gifs/lane.gif" alt="Lane Detection Demo" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=7eA_XfIkLWQ)
 
 > Note: Very low-light (tunnel) scenarios are not yet supported.
-
----
 
 #### Previous Lane Detection Demo (v1)
 
@@ -105,7 +111,7 @@ The original demo is still available for reference:
 
 See real-time LiDAR point cloud streaming and autonomous vehicle telemetry in Foxglove Studio:
 
-<img src="images/demo_gifs/foxglove.gif" alt="Foxglove Visualization Demo" width="400" height="225" />
+<img src="images/demo_gifs/foxglove.gif" alt="Foxglove Visualization Demo" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=4HJDvL2Q6AY)
 
@@ -139,7 +145,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
   </tr>
 </table>
 
-> Configuration files are located in the `beamng_sim/config/` directory:
+> Configuration files are located in the `/config` directory:
 
 ## Roadmap
 
@@ -150,25 +156,30 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [x] Advanced lane detection using OpenCV (robust highway, lighting, outlier handling)
 - [x] Integrate Majority Voting system for CV
 - [x] ⭐ Semantic Segmentatation (Already built not implemented here yet)
-- [ ] Real-Time Object Tracking
-- [ ] Handle dashed lines better in lane detection
-- [ ] Stop Sign Yield Sign Detection and Response
-- [ ] Dynamic Target Speed based on Speed Limit Signs
+- [x] ⭐ Real-Time Object Detection (Cars, Trucks, Buses, Pedestrians, Cyclists) (Trained)
+- [ ] 🔥 Speed Estimation using detection from camera and lidar
+  - [ ] Potentially use Multiple Object Tracking (MOT) for better speed estimation
+- [ ] Pedestrian intent prediction (crossing, standing, walking along road)
+- **Note:** Would Have to be tested in Carla as BeamNG.tech does not have pedestrians implemented
+- [ ] Vehicle State Classification (Break Lights, Turn Signals, Reverse Lights)
+- [ ] 🔥 Handle dashed lines better in lane detection
 - [ ] 🔥 Lidar Object Detection 3D
 - [ ] Detect multiple lanes
-- [ ] Lane Change Logic
-- [ ] 💤 Road Surface & Condition Detection and Classification
 - [ ] 💤 Multi Camera Setup (Will implement after all other camera-based features are finished)
 - [ ] 💤 Overtaking, Merging (Will be part of Path Planning)
 
 ### Sensor Fusion & Calibration
+- [ ] 🔥 Kalman Filtering
 - [x] Integrate Radar
 - [x] Integrate Lidar
 - [ ] Integrate GPS
 - [ ] Integrate IMU
-- [ ] Ultrasonic Sensor Integration (Can easily be implemented with prebuilt Beamng ADAS module)
+- [ ] Ultrasonic Sensor Integration
+- **Note:** Can easily be implemented with prebuilt Beamng ADAS module
 - [ ] Map Matching algorithm
-- [ ] 💤 💤 SLAM (simultaneous localization and mapping)
+- [ ] 💤 SLAM (simultaneous localization and mapping)
+  - [ ] Build HD Map from Scratch
+  - [ ] Localize Vehicle on HD Map
 - [ ] Sensor Health Monitoring & Redundancy
   - [ ] Redundant Front Radar for AEB
   - [ ] Sensor status diagnostics and failover
@@ -177,9 +188,16 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [x] Integrate vehicle control (Throttle, Steering, Braking Implemented) (PID needs further tuning)
 - [x] Integrate PIDF controller
 - [x] ⭐ Adaptive Cruise Control (Currently only basic Cruise Control implemented)
-- [x] ⭐ Emergency Braking / Collision Avoidance (Using Front radar)
+- [x] ⭐ Automatic Emergency Braking AEB
+  - [ ] Support using Camera and Lidar detections
+- [ ] Trajectory Predcition for surrounding vehicles
 - [ ] Blindspot Monitoring (Using left/right rear short range radars)
-- [ ] Path planning
+- [ ] Traffic Rule Enforcement (Stop at red lights, stop signs, yield signs)
+- [ ] Dynamic Target Speed based on Speed Limit Signs
+- [ ] Global Path planning
+- [ ] Local Path planning
+- [ ] Lane Change Logic
+- [ ] Parking Logic (Path finding / Parallel or Perpendicular)
 - [ ] 💤 End-to-end driving policy learning (RL, imitation learning)
 - [ ] 💤💤 Advanced traffic participant prediction (trajectory, intent)
 
@@ -187,17 +205,22 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [x] Integrate and test in BeamNG.tech simulation (replacing CARLA)
 - [x] Modularize and clean up BeamNG.tech pipeline
 - [x] Tweak lane detection parameters and thresholds
+- [ ] Fog Weather conditions (Rain or snow not supported in BeamNG.tech)
 - [ ] Traffic scenarios: driving in heavy, moderate, and light traffic
-- [ ] Test Lighting conditions
+- [ ] Test all Systems in different lighting conditions (Day, Night, Dawn/Dusk, Tunnel)
 - [ ] 💤💤 Test using actual RC car
-- [ ] 💤 Containerize Models
 
 ### Visualization & Logging
 - [x] ⭐ Full Foxglove visualization integration (Overhaul needed)
 - [x] Modular YAML configuration system
 - [x] Real-time drive logging and telemetry
-- [ ] 🔥 Real time Annotations Overlay in Foxglove
+- [ ] Real time Annotations Overlay in Foxglove
+- [ ] Show predicted trajectories in Foxglove
+- [ ] Show Global and local path plans in Foxglove
 - [ ] Live Map Visualization
+
+### Deployment & Infrastructure
+- [ ] Containerize Models for easy deployment and scalability (Also eliminates dependency issues)
 
 ### README To-Dos
 - [x] Add demo images and videos to README
@@ -206,7 +229,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 ### Other
 - [x] Vibe-Code a website for the project
-- [ ] Redo project structure for better modularity
+- [x] Redo project structure for better modularity
   
 > Driver Monitoring System would've been pretty cool but human drivers are not implemented in BeamNG.tech
 
@@ -219,12 +242,50 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 > 💤💤 = Very Low Priority, may not be implement
 
+## Note on Installation
+> **Status:** This project is currently in **active development**. A stable, production-ready release with pre-trained models and complete documentation will be available eventually.
+
+
+## Known Limitations
+
+- **Tunnel/Low-Light Scenarios:** Camera depth perception fails below ~50 lux
+- **Multi-Camera Support:** Single front-facing camera only (future roadmap)
+- **Dashed Lane Detection:** Requires improvement for better accuracy
+- **PID Controller Tuning:** May oscillate on aggressive maneuvers
+- **Real-World Testing:** Only validated in simulation (BeamNG.tech), for now...
+
+### Simulator-Specific Limitations
+
+- Rain/snow physics not supported in BeamNG.tech
+- No native ROS2 support (custom bridge required)
+- Pedestrians
+- Human Drivers
+
 ## Credits
-- Datasets: CU Lane, LISA, GTRSB, Mapillary, BDD100K
-- Models: Ultralytics YOLOv8, custom CNNs
-- Simulation: BeamNG.tech ([BeamNG GmbH](https://www.beamng.tech/))
-- Special thanks to [Kaggle](https://www.kaggle.com/) for providing free GPU resources for model training without them it would've been imposible to train such good models.
-- I would also like to thank my teacher and supervisor Mr. Pratt for their guidance and support throughout this project.
+
+**Datasets:** 
+- CU Lane, LISA, GTSRB, Mapillary, BDD100K
+
+**Simulation & Tools:**
+- BeamNG.tech by [BeamNG GmbH](https://www.beamng.tech/)
+- Foxglove Studio for visualization
+
+**Special Thanks:**
+- Kaggle for free GPU resources (model training)
+- Mr. Pratt (teacher/supervisor) for guidance
+
+## Citation
+
+If you use VisionPilot in your research, please cite:
+
+```bibtex
+@software{visionpilot2025,
+  title={VisionPilot: Autonomous Driving Simulation, Computer Vision & Real-Time Perception},
+  author={Julian Stamm},
+  year={2025},
+  url={https://github.com/visionpilot-project/VisionPilot}
+}
+```
 
 ### BeamNG.tech Citation
 
@@ -234,3 +295,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 > **Year:** 2025  
 > **Version:** 0.35.0.0  
 > **URL:** https://www.beamng.tech/
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
