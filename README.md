@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="images/bannernobg.png" alt="VisionPilot Banner" height="200" />
+  <img src="media/bannernobg.png" alt="VisionPilot Banner" height="200" />
 </p>
 
 # VisionPilot: Autonomous Driving Simulation, Computer Vision & Real-Time Perception (BeamNG.tech)
@@ -15,12 +15,13 @@
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Demos](#demos)
-    - [Emergency Braking (AEB) Demo](#emergency-braking-aeb-demo)
-    - [Sign Detection \& Detection and classification](#sign-detection--detection-and-classification)
-    - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
-    - [Latest Lane Detection Demo (v2)](#latest-lane-detection-demo-v2)
-      - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
-    - [Foxglove Visualization Demo](#foxglove-visualization-demo)
+    - [Emergency Braking (AEB)](#emergency-braking-aeb-demo)
+    - [Sign Detection \& Classification](#sign-detection--and-classification)
+    - [Traffic Light Detection \& Classification](#traffic-light-detection--classification-demo)
+    - [Latest Lane Detection (v2)](#latest-lane-detection-demo-v2)
+      - [Previous Lane Detection (v1)](#previous-lane-detection-demo-v1)
+    - [Foxglove Visualization](#foxglove-visualization-demo)
+    - [Segmentation](#segmentation-demo)
   - [Sensor Suite](#sensor-suite)
   - [Roadmap](#roadmap)
     - [Perception](#perception)
@@ -45,10 +46,10 @@
 
 A modular Python project for autonomous driving research and prototyping, fully integrated with the BeamNG.tech simulator and Foxglove visualization. This system combines traditional computer vision and state-of-the-art deep learning (CNN, U-Net, YOLO, SCNN) with real-time sensor fusion and autonomous vehicle control to tackle:
 
-- Lane detection (Traditional CV, SCNN, OpenCV; capable of highway scenarios)
-- Traffic sign classification & detection (CNN, YOLOv11)
-- Traffic light detection & classification (YOLOv11, CNN)
-- Vehicle & pedestrian detection and recognition (YOLOv11)
+- Lane detection (Traditional CV & SCNN)
+- Traffic sign classification & detection (CNN, YOLO)
+- Traffic light detection & classification (YOLO, CNN)
+- Vehicle & pedestrian detection and recognition (YOLO)
 - Multi-sensor fusion (Camera, LiDAR, Radar, GPS, IMU)
 - Multi-model inference, real-time simulation, autonomous driving with PID control (BeamNG.tech)
 - Cruise control
@@ -62,7 +63,7 @@ A modular Python project for autonomous driving research and prototyping, fully 
 
 Watch the Emergency Braking System (AEB) in action with real-time radar filtering and collision avoidance:
 
-<img src="images/demo_gifs/aeb_gif.gif" alt="AEB Demo" width="600" height="337" />
+<img src="media/demo_gifs/aeb_gif.gif" alt="AEB Demo" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=Z8Y2-MpmrRg)
 
@@ -72,17 +73,19 @@ Watch the Emergency Braking System (AEB) in action with real-time radar filterin
 
 This demo shows real-time traffic sign detection and classification:
 
-<img src="images/demo_gifs/sign_detection_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="600" height="337" />
+<img src="media/demo_gifs/sign_demo.gif" alt="Sign Detection Demo & Vehicle Pedestrian" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://youtu.be/ujGkQJ2BqV0)
 
+
+> VisionPilot does not yet support multi-camera. This is for demonstration purposes only.
 ---
 
 ## Traffic Light Detection & Classification Demo
 
 This demo shows real-time traffic light detection and classification:
 
-<img src="images/demo_gifs/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="600" height="337" />
+<img src="media/demo_gifs/traffic_light_demo.gif" alt="Traffic Light Detection & Classification Demo" width="600" height="337" />
 
 > No extended Demo avaliable yet.
 
@@ -92,7 +95,7 @@ This demo shows real-time traffic light detection and classification:
 
 Watch the improved autonomous lane keeping demo (v2) in BeamNG.tech, featuring smoother fused CV+SCNN lane detection, stable PID steering, and robust cruise control:
 
-<img src="images/demo_gifs/lane.gif" alt="Lane Detection Demo" width="600" height="337" />
+<img src="media/demo_gifs/lane.gif" alt="Lane Detection Demo" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=7eA_XfIkLWQ)
 
@@ -111,13 +114,23 @@ The original demo is still available for reference:
 
 See real-time LiDAR point cloud streaming and autonomous vehicle telemetry in Foxglove Studio:
 
-<img src="images/demo_gifs/foxglove.gif" alt="Foxglove Visualization Demo" width="600" height="337" />
+<img src="media/demo_gifs/foxglove.gif" alt="Foxglove Visualization Demo" width="600" height="337" />
 
 **Extended Demo:** [Watch the full video here](https://www.youtube.com/watch?v=4HJDvL2Q6AY)
 
-> More demo videos and visualizations will be added as features are completed.
-
 ---
+
+## Segmentation Demo
+
+
+See real-time image segmentation using front and rear cameras:
+
+<img src="media/demo_gifs/segmentation.gif" alt="Segmentation Demo" width="600" height="337" />
+
+**Extended Demo:** [Watch the full video here](https://youtu.be/4PAqcUKqn6c?si=UHw-mw7iLZKGXvav)
+
+
+> More demo videos and visualizations will be added as features are completed.
 
 ## Sensor Suite
 
@@ -134,9 +147,9 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 <table>
   <tr>
-    <td align="center"><img src="images/beamng_images/sensors.png" alt="Sensor Array 1" width="280"/></td>
-    <td align="center"><img src="images/beamng_images/radar_front.png" alt="Sensor Array 2" width="280"/></td>
-    <td align="center"><img src="images/beamng_images/lidar.png" alt="Sensor Array 3" width="280"/></td>
+    <td align="center"><img src="media/beamng_images/sensors.png" alt="Sensor Array 1" width="280"/></td>
+    <td align="center"><img src="media/beamng_images/radar_front.png" alt="Sensor Array 2" width="280"/></td>
+    <td align="center"><img src="media/beamng_images/lidar.png" alt="Sensor Array 3" width="280"/></td>
   </tr>
   <tr>
     <td align="center"><em>Sensor Array</em></td>
