@@ -15,13 +15,13 @@
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
   - [Demos](#demos)
-    - [Emergency Braking (AEB)](#emergency-braking-aeb-demo)
-    - [Sign Detection \& Classification](#sign-detection--and-classification)
-    - [Traffic Light Detection \& Classification](#traffic-light-detection--classification-demo)
-    - [Latest Lane Detection (v2)](#latest-lane-detection-demo-v2)
-      - [Previous Lane Detection (v1)](#previous-lane-detection-demo-v1)
-    - [Foxglove Visualization](#foxglove-visualization-demo)
-    - [Segmentation](#segmentation-demo)
+    - [Emergency Braking (AEB) Demo](#emergency-braking-aeb-demo)
+    - [Sign Detection \& Detection and classification](#sign-detection--detection-and-classification)
+  - [Traffic Light Detection \& Classification Demo](#traffic-light-detection--classification-demo)
+    - [Latest Lane Detection Demo (v2)](#latest-lane-detection-demo-v2)
+      - [Previous Lane Detection Demo (v1)](#previous-lane-detection-demo-v1)
+  - [Foxglove Visualization Demo](#foxglove-visualization-demo)
+  - [Segmentation Demo](#segmentation-demo)
   - [Sensor Suite](#sensor-suite)
   - [Roadmap](#roadmap)
     - [Perception](#perception)
@@ -32,6 +32,7 @@
     - [Deployment \& Infrastructure](#deployment--infrastructure)
     - [README To-Dos](#readme-to-dos)
     - [Other](#other)
+  - [Legend](#legend)
   - [Note on Installation](#note-on-installation)
   - [Known Limitations](#known-limitations)
     - [Simulator-Specific Limitations](#simulator-specific-limitations)
@@ -234,6 +235,10 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 ### Deployment & Infrastructure
 - [ ] Containerize Models for easy deployment and scalability (Also eliminates dependency issues)
+  - [ ] Message Broker (redis/rabbitmq)
+  - [ ] Create docker compose
+  - [ ] Aggregator service
+  - [ ] Refactor beamng.py
 
 ### README To-Dos
 - [x] Add demo images and videos to README
@@ -261,7 +266,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 ## Known Limitations
 
-- **Tunnel/Low-Light Scenarios:** Camera depth perception fails below ~50 lux
+- **Tunnel/Low-Light Scenarios:** Camera depth perception fails below certain lighting thresholds
 - **Multi-Camera Support:** Single front-facing camera only (future roadmap)
 - **Dashed Lane Detection:** Requires improvement for better accuracy
 - **PID Controller Tuning:** May oscillate on aggressive maneuvers

@@ -192,6 +192,101 @@ def detect_classify_sign(frame):
             
     return detections
 
+def sign_detection_only(frame, confidence_threshold=0.2):
+    """
+    Detect traffic signs only, without classification.
+    Returns bounding boxes and detection confidence.
+    
+    Args:
+        frame: Input image
+        confidence_threshold: Minimum confidence for detection
+        
+    Returns:
+        List of detections with bbox and detection_confidence
+    """
+    models_dict = get_models_dict()
+    
+    if models_dict is not None and 'sign_detect' in models_dict:
+        detection_model = models_dict['sign_detect']
+    else:
+        detection_model = YOLO(SIGN_MODEL_PATH)
+    
+    results = detection_model(frame, conf=confidence_threshold)
+    detections = []
+    
+    for result in results:
+        boxes = result.boxes
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+            class_id = int(box.cls[0])
+            class_name = detection_model.names[class_id]
+            confidence = float(box.conf[0])
+            
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
+            
+            if x2 > x1 and y2 > y1:
+                detections.append({
+                    'bbox': (x1, y1, x2, y2),
+                    'detection_class': class_name,
+                    'detection_confidence': confidence
+                })
+    
+    return detections
+
+def sign_classification_only(frame, bboxes=None):
+    """
+    Classify traffic signs in given bounding boxes or full frame.
+    If bboxes not provided, performs detection then classification.
+    
+    Args:
+        frame: Input image
+        bboxes: Optional list of (x1, y1, x2, y2) to classify
+        
+    Returns:
+        List of classifications with bbox and classification_confidence
+    """
+    models_dict = get_models_dict()
+    
+    if models_dict is not None and 'sign_classify' in models_dict:
+        classification_model = models_dict['sign_classify']
+    else:
+        classification_model = load_model(SIGN_CLASSIFY_MODEL_PATH)
+    
+    # If no bboxes provided, detect first then classify
+    if bboxes is None:
+        detected = sign_detection_only(frame, confidence_threshold=0.2)
+        bboxes = [det['bbox'] for det in detected]
+    
+    classifications = []
+    
+    for bbox in bboxes:
+        x1, y1, x2, y2 = bbox
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(frame.shape[1], x2), min(frame.shape[0], y2)
+        
+        if x2 > x1 and y2 > y1:
+            sign_crop = frame[y1:y2, x1:x2]
+            
+            try:
+                classification_result = classify_sign_crop(sign_crop)
+                classifications.append({
+                    'bbox': bbox,
+                    'classification': classification_result['class'],
+                    'classification_confidence': classification_result['confidence'],
+                    'class_index': classification_result['class_index']
+                })
+            except Exception as e:
+                print(f"Error during classification: {e}")
+                classifications.append({
+                    'bbox': bbox,
+                    'classification': 'Classification failed',
+                    'classification_confidence': 0.0,
+                    'class_index': -1
+                })
+    
+    return classifications
+
 def sign_detection_classification(frame):
     """
     Pure sign detection and classification.

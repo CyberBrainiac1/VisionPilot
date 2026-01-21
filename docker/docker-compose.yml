@@ -1,0 +1,93 @@
+# Update model paths
+
+services:
+  redis:
+    image: "redis:alpine"
+    container_name: "visionpilot_redis"
+    ports:
+      - "3777:6777"
+    networks:
+      - visionpilot_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    
+  lane_detection:
+    build:
+      context: ..
+      dockerfile: /docker/lane_detection/Dockerfile.lane_detection
+    container_name: "visionpilot_lane_detection"
+    environment:
+      - MODEL_PATH=/models/scnn_lanedet/scnn.pth
+    ports:
+      - "4777:7777"
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+  
+  object_detection:
+    build:
+      context: ..
+      dockerfile: /docker/object_detection/Dockerfile.object_detection
+    container_name: "visionpilot_object_detection"
+    environment:
+      - MODEL_PATH=/models/object_detection/object_detection.pth
+    ports:
+      - "5777:7777"
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  traffic_light_detection:
+    build:
+      context: ..
+      dockerfile: /docker/traffic_light_detection/Dockerfile.traffic_light_detection
+    container_name: "visionpilot_traffic_light_detection"
+    environment:
+      - MODEL_PATH=/models/traffic_light/traffic_light.pth
+    ports:
+      - "6777:7777"
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+  sign_detection:
+    build:
+      context: ..
+      dockerfile: /docker/sign_detection/Dockerfile.sign_detection
+    container_name: "visionpilot_sign_detection"
+    environment:
+      - MODEL_PATH=/models/traffic_sign/traffic_sign_detection.pt
+    ports:
+      - "7777:7777"
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  sign_classification:
+    build:
+      context: ..
+      dockerfile: /docker/sign_classification/Dockerfile.sign_classification
+    container_name: "visionpilot_sign_classification"
+    environment:
+      - MODEL_PATH=/models/traffic_sign/traffic_sign_classification.h5
+    ports:
+      - "8777:8777"
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  visionpilot_net:
+    driver: bridge
