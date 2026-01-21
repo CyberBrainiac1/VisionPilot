@@ -1,10 +1,24 @@
-FROM visionpilot-base
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04
 
-COPY src/perception/traffic_light_detection /app/src/perception/traffic_light_detection
-COPY models/traffic_light/traffic_light.pth /app/models/traffic_light/traffic_light.pth
-COPY services/traffic_light_detection_service.py /app/services/traffic_light_detection_service.py
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    python3 python3-pip python3-opencv git libgl1-mesa-glx curl && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV MODEL_PATH=/app/models/traffic_light/traffic_light.pth
+WORKDIR /app
+
+COPY src /app/src
+COPY services /app/services
+COPY config /app/config
+COPY requirements.txt /app/
+
+RUN pip3 install --upgrade pip && \
+    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 && \
+    pip3 install -r requirements.txt
+
+RUN mkdir -p /app/models/traffic_light
+
+ENV MODEL_PATH=/models/traffic_light/traffic_light_detection.pt
 ENV PYTHONUNBUFFERED=1
 
 CMD ["python3", "/app/services/traffic_light_detection_service.py"]

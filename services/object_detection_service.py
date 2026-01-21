@@ -10,9 +10,24 @@ from src.perception.object_detection.main import process_frame
 
 app = Flask(__name__)
 
+MODELS = {}
+
 def load_models():
-    """Initialize detection model (handled by process_frame internally)"""
+    """Initialize detection model"""
+    global MODELS
+    model_path = os.getenv('MODEL_PATH')
+    if not model_path:
+        print("[Object Detection Service] ERROR: MODEL_PATH environment variable not set")
+        return False
+    
+    if not os.path.exists(model_path):
+        print(f"[Object Detection Service] ERROR: Model file not found at {model_path}")
+        return False
+    
+    print(f"[Object Detection Service] Model path configured: {model_path}")
+    MODELS['model_path'] = model_path
     print("[Object Detection Service] Ready to process frames")
+    return True
 
 @app.route('/process', methods=['POST'])
 def process_detection():
@@ -30,9 +45,9 @@ def process_detection():
     try:
         data = request.get_json()
         
-        # Decode frame from request
+        # decode frame from request
         frame_data = np.array(data['frame'], dtype=np.uint8)
-        frame_shape = data.get('frame_shape', [720, 1280, 3])
+        frame_shape = data.get('frame_shape', [1080, 1920, 3])
         frame = frame_data.reshape(frame_shape)
         
         confidence_threshold = data.get('confidence_threshold', 0.4)
@@ -40,14 +55,14 @@ def process_detection():
         
         print(f"[Object Detection Service] Processing frame {frame_id}: {frame.shape}, threshold: {confidence_threshold}")
         
-        # Call core inference logic from source
+        # call obj det infrence logic
         detections, result_img = process_frame(
             frame,
             confidence_threshold=confidence_threshold,
             draw_detections=False
         )
         
-        # Format detections for response
+        # format detections for response
         formatted_detections = []
         if detections:
             for det in detections:
@@ -78,10 +93,13 @@ def health():
     """Health check endpoint"""
     return {
         'status': 'healthy',
-        'service': 'object_detection'
+        'service': 'object_detection',
+        'model_configured': MODELS.get('model_path') is not None
     }, 200
 
 if __name__ == '__main__':
-    load_models()
+    if not load_models():
+        print("[Object Detection Service] Failed to load models. Exiting.")
+        sys.exit(1)
     print("[Object Detection Service] Starting on 0.0.0.0:5777")
     app.run(host='0.0.0.0', port=5777, debug=False)

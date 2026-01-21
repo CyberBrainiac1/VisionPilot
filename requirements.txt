@@ -9,3 +9,8 @@ Pillow
 opencv-python
 tqdm
 beamngpy==1.34.1
+flask==3.0.0
+requests==2.31.0
+flask-cors
+
+ultralytics>=8.0.28

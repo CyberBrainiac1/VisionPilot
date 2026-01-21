@@ -10,9 +10,24 @@ from src.perception.sign_detection.detect_classify import sign_classification_on
 
 app = Flask(__name__)
 
+MODELS = {}
+
 def load_models():
-    """Initialize classification model (handled internally)"""
+    """Initialize classification model"""
+    global MODELS
+    model_path = os.getenv('MODEL_PATH')
+    if not model_path:
+        print("[Sign Classification Service] ERROR: MODEL_PATH environment variable not set")
+        return False
+    
+    if not os.path.exists(model_path):
+        print(f"[Sign Classification Service] ERROR: Model file not found at {model_path}")
+        return False
+    
+    print(f"[Sign Classification Service] Model path configured: {model_path}")
+    MODELS['model_path'] = model_path
     print("[Sign Classification Service] Ready to process frames")
+    return True
 
 @app.route('/process', methods=['POST'])
 def process_classification():
@@ -30,12 +45,12 @@ def process_classification():
     try:
         data = request.get_json()
         
-        # Decode frame from request
+        # decode frame from request
         frame_data = np.array(data['frame'], dtype=np.uint8)
-        frame_shape = data.get('frame_shape', [720, 1280, 3])
+        frame_shape = data.get('frame_shape', [1080, 1920, 3])
         frame = frame_data.reshape(frame_shape)
         
-        # Optional: use pre-detected bboxes
+        # try to use pre-detected bboxes if provided
         bboxes = data.get('bboxes', None)
         if bboxes:
             bboxes = [tuple(bbox) for bbox in bboxes]
@@ -44,10 +59,10 @@ def process_classification():
         
         print(f"[Sign Classification Service] Processing frame {frame_id}: {frame.shape}, bboxes: {len(bboxes) if bboxes else 'auto-detect'}")
         
-        # Call core classification-only logic from source
+        # call classification logic
         classifications = sign_classification_only(frame, bboxes=bboxes)
         
-        # Format classifications for response
+        # format classifications for response
         formatted_classifications = []
         if classifications:
             for cls in classifications:
@@ -79,10 +94,13 @@ def health():
     """Health check endpoint"""
     return {
         'status': 'healthy',
-        'service': 'sign_classification'
+        'service': 'sign_classification',
+        'model_configured': MODELS.get('model_path') is not None
     }, 200
 
 if __name__ == '__main__':
-    load_models()
+    if not load_models():
+        print("[Sign Classification Service] Failed to load models. Exiting.")
+        sys.exit(1)
     print("[Sign Classification Service] Starting on 0.0.0.0:8777")
     app.run(host='0.0.0.0', port=8777, debug=False)

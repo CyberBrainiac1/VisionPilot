@@ -1,10 +1,24 @@
-FROM visionpilot-base
+FROM nvidia/cuda:12.2.0-runtime-ubuntu22.04
 
-COPY src/perception/sign_detection /app/src/perception/sign_detection
-COPY models/traffic_sign/traffic_sign_classification.h5 /app/models/traffic_sign/traffic_sign_classification.h5
-COPY services/sign_classification_service.py /app/services/sign_classification_service.py
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    python3 python3-pip python3-opencv git libgl1-mesa-glx curl && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV MODEL_PATH=/app/models/traffic_sign/traffic_sign_classification.h5
+WORKDIR /app
+
+COPY src /app/src
+COPY services /app/services
+COPY config /app/config
+COPY requirements.txt /app/
+
+RUN pip3 install --upgrade pip && \
+    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu117 && \
+    pip3 install -r requirements.txt
+
+RUN mkdir -p /app/models/traffic_sign
+
+ENV MODEL_PATH=/models/traffic_sign/traffic_sign_classification.h5
 ENV PYTHONUNBUFFERED=1
 
 CMD ["python3", "/app/services/sign_classification_service.py"]

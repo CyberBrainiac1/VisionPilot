@@ -1,10 +1,11 @@
 import sys
 import os
 import yaml
+import logging
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.utils.pid_controller import PIDController
+from utils.pid_controller import PIDController
 
 from beamngpy import BeamNGpy, Scenario, Vehicle
 from beamngpy.sensors import Camera, Lidar, Radar, GPS, AdvancedIMU
@@ -23,18 +24,15 @@ import math
 import cv2
 from scipy.spatial.transform import Rotation as R
 
+from simulation.perception_client import PerceptionClient
 
-from src.perception.lane_detection.main import process_frame_cv as lane_detection_cv_process_frame
-from src.perception.lane_detection.main import process_frame_scnn as lane_detection_scnn_process_frame
-from src.perception.sign_detection.main import process_frame as sign_process_frame
-from src.perception.traffic_light_detection.main import process_frame as traffic_light_process_frame
-from src.perception.object_detection.main import process_frame as object_process_frame
+
 from src.sensor_fusion.lidar.main import process_frame as lidar_process_frame
 from src.sensor_fusion.radar.main import process_frame as radar_process_frame
 
-from src.perception.lane_detection.fusion import fuse_lane_metrics
-
 from simulation.foxglove_integration.bridge_instance import bridge
+
+logger = logging.getLogger(__name__)
 
 MODELS = {}
 
@@ -70,48 +68,6 @@ def get_timestamp_ns():
         int: Timestamp in nanoseconds
     """
     return int(time.time_ns())
-
-def load_models():
-    """
-    Load all the models into a global dictionary for use in detection or classification.
-    This way models are only loaded once.
-    """
-    print("Loading models")
-
-    # Sign detection model
-    MODELS['sign_detect'] = YOLO(str(SIGN_DETECTION_MODEL))
-    print("Sign detection model loaded")
-
-    # Sign classification model with custom objects used during training
-    MODELS['sign_classify'] = load_model(
-        str(SIGN_CLASSIFICATION_MODEL), 
-    )
-    print("Sign classification model loaded")
-    
-    # Vehicle detection model 
-    MODELS['vehicle'] = YOLO(str(VEHICLE_PEDESTRIAN_MODEL))
-    print("Vehicle detection model loaded")
-
-    # Traffic Light detection model
-    MODELS['traffic_light'] = YOLO(str(LIGHT_DETECTION_CLASSIFICATION_MODEL))
-    print("Traffic Light detection model loaded")
-    
-    # Lane detection SCNN model
-    from src.perception.lane_detection.scnn.scnn_model import SCNN
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"SCNN will run on: {device}")
-    
-    scnn_model = SCNN(input_size=(800, 288), pretrained=False)
-    checkpoint = torch.load(str(SCNN_LANE_DETECTION_MODEL), map_location=device)
-    scnn_model.load_state_dict(checkpoint['net'])
-    scnn_model = scnn_model.to(device)
-    scnn_model.eval()
-    
-    MODELS['lane_scnn'] = scnn_model
-    MODELS['scnn_device'] = device
-    print(f"Lane detection SCNN model loaded (device: {device})")
-    print("All models loaded successfully!")
-
 
 def load_config():
     """Load all configuration files."""
@@ -365,90 +321,9 @@ def get_vehicle_speed(vehicle):
     return speed_mps, speed_kph, position, direction
 
 
-def lane_detection_fused(img, speed_kph, previous_steering, step_i, vehicle_model='q8_andronisk'):
-
-    # Use static variables to store last SCNN result/metrics/confidence
-    if not hasattr(lane_detection_fused, "scnn_cache"):
-        lane_detection_fused.scnn_cache = {
-            'result': None,
-            'metrics': None,
-            'conf': 0.0,
-            'last_frame': -5
-        }
-
-    cv_result, cv_metrics, cv_conf = lane_detection_cv_process_frame(
-        img, speed=speed_kph, previous_steering=previous_steering, 
-        debug_display=False, perspective_debug_display=False,
-        calibration_data=None, vehicle_model=vehicle_model
-    )
-
-    # Run SCNN every 5 frames (same as UNet was doing)
-    if lane_detection_fused.scnn_cache['last_frame'] is None or step_i - lane_detection_fused.scnn_cache['last_frame'] >= 5:
-        scnn_result, scnn_metrics, scnn_conf = lane_detection_scnn_process_frame(
-            img, model=MODELS['lane_scnn'], device=MODELS['scnn_device'], 
-            speed=speed_kph, previous_steering=previous_steering, 
-            debug_display=False,
-            calibration_data=None, vehicle_model=vehicle_model
-        )
-        lane_detection_fused.scnn_cache = {
-            'result': scnn_result,
-            'metrics': scnn_metrics,
-            'conf': scnn_conf,
-            'last_frame': step_i
-        }
-    else:
-        scnn_result = lane_detection_fused.scnn_cache['result']
-        scnn_metrics = lane_detection_fused.scnn_cache['metrics']
-        scnn_conf = lane_detection_fused.scnn_cache['conf']
-    
-    print(f"CV Conf: {cv_conf:.3f}, SCNN Conf: {scnn_conf:.3f}")
-
-    fused_metrics = fuse_lane_metrics(cv_metrics, cv_conf, scnn_metrics, scnn_conf, method_name="SCNN")
-
-    cv_result_rgb = cv2.cvtColor(cv_result, cv2.COLOR_BGR2RGB)
-    scnn_result_rgb = cv2.cvtColor(scnn_result, cv2.COLOR_BGR2RGB)
-    display_scale = 0.5
-    cv_small = cv2.resize(cv_result_rgb, (0, 0), fx=display_scale, fy=display_scale)
-    scnn_small = cv2.resize(scnn_result_rgb, (0, 0), fx=display_scale, fy=display_scale)
-    cv2.imshow('Lane Detection CV', cv_small)
-    cv2.imshow('Lane Detection SCNN', scnn_small)
-
-    result = cv_result if cv_conf > scnn_conf else scnn_result
-
-    return result, fused_metrics
-
-def sign_detection_classification(img, perception_cfg, draw=True):
-    """
-    Process sign detection and classification on the input image.
-    """
-    confidence_threshold = perception_cfg['sign_detection']['confidence_threshold']
-
-    sign_detections, sign_img = sign_process_frame(img, confidence_threshold=confidence_threshold, draw_detections=draw)
-    return sign_detections, sign_img
-
-def object_detection(img, perception_cfg, draw=True):
-    """
-    Process vehicle and pedestrian detection on the input image.
-    """
-    confidence_threshold = perception_cfg['object_detection']['confidence_threshold']
-
-    object_detections, object_img = object_process_frame(img, confidence_threshold=confidence_threshold, draw_detections=draw)
-    return object_detections, object_img
-
-def traffic_light_detection(img, perception_cfg, draw=True):
-    """
-    Process traffic light detection on the input image.
-    """
-    confidence_threshold = perception_cfg['traffic_light_detection']['confidence_threshold']
-
-    detections, result_img = traffic_light_process_frame(img, confidence_threshold=confidence_threshold, draw_detections=draw)
-    return detections
-
 def radar_aeb_acc(radar_front, perception_cfg, speed_kph):
     radar_cfg = perception_cfg['radar']
-
     radar_result = radar_process_frame(radar_front, radar_cfg, speed_kph)
-
     return radar_result
 
 
@@ -501,17 +376,21 @@ def main():
     Main function to run the simulation.
     """
 
-    print("Starting Foxglove WebSocket server...")
-    bridge.start_server()
-    print("Initializing Foxglove channels...")
-    bridge.initialize_channels()
-    print("Foxglove ready - connect to ws://localhost:8765")
+    print("Initializing aggregator client")
+    perception_client = PerceptionClient(
+        host='localhost',
+        service_ports={
+            'lane_detection': 4777,
+            'object_detection': 5777,
+            'traffic_light_detection': 6777,
+            'sign_detection': 7777,
+            'sign_classification': 8777
+        },
+        timeout=2.0,
+        auto_health_check=True
+    )
+    print("Aggregator ready\n")
 
-    try:
-        load_models()
-    except Exception as e:
-        print(f"Model loading error: {e}")
-        return
 
     # Change map/scenario here: use map_name='west_coast_usa' or 'italy', scenario_type='highway' or 'city'
     # vehicle_name can be 'etk800' or 'q8_andronisk'
@@ -628,18 +507,36 @@ def main():
 
             # Lane Detection
             try:
-                result, fused_metrics = lane_detection_fused(
-                    img, speed_kph, previous_steering, step_i=step_i, vehicle_model=vehicle_model
+                agg_result = perception_client.process_frame(
+                    frame=img,
+                    speed_kph=speed_kph,
+                    timestamp_ns=get_timestamp_ns(),
+                    vehicle_pos=car_pos,
+                    vehicle_direction=direction
                 )
-            except Exception as lane_e:
-                print(f"Lane detection error: {lane_e}")
+                
+                processing_time_ms = agg_result.processing_time_ms
+                logger.info(f"Aggregation latency: {processing_time_ms:.1f}ms")
+                
+            except Exception as agg_e:
+                print(f"[CRITICAL] Aggregation error: {agg_e}")
+                import traceback
+                traceback.print_exc()
                 continue
 
-            deviation = fused_metrics.get('deviation', 0.0)
-            smoothed_deviation = fused_metrics.get('smoothed_deviation', 0.0)
-            effective_deviation = fused_metrics.get('effective_deviation', 0.0)
-            lane_center = fused_metrics.get('lane_center', 0.0)
-            vehicle_center = fused_metrics.get('vehicle_center', 0.0)
+            # Lane Metric extraction
+            lane_metrics = perception_client.extract_lane_detection(agg_result)
+            deviation = lane_metrics['deviation']
+            smoothed_deviation = lane_metrics.get('smoothed_deviation', deviation)
+            effective_deviation = lane_metrics.get('effective_deviation', deviation)
+            lane_center = lane_metrics['lane_center']
+            vehicle_center = lane_metrics['vehicle_center']
+            fused_confidence = lane_metrics['confidence']
+
+            # Extract other detections
+            object_detections = perception_client.extract_object_detection(agg_result)
+            traffic_light_detections = perception_client.extract_traffic_light_detection(agg_result)
+            sign_detections = perception_client.extract_sign_detection(agg_result)
 
             steering = steering_pid.update(-effective_deviation, dt)
             steering = np.clip(steering, -1.0, 1.0)
@@ -651,7 +548,7 @@ def main():
             throttle = throttle * (1.0 - 0.3 * abs(steering))
             throttle = np.clip(throttle, 0.05, 0.3)
 
-            fused_confidence = fused_metrics.get('confidence', 0.0)
+            fused_confidence = lane_metrics.get('confidence', 0.0)
             
             # Calculate vehicle yaw from direction
             car_yaw = np.arctan2(-direction[1], -direction[0])
@@ -664,32 +561,9 @@ def main():
             lidar_yaw = car_yaw  # LiDAR has same yaw as vehicle
 
 
-            if step_i % 80 == 0: # Lower later
-                try:
-                    # Sign Detection
-                    sign_detections, _ = sign_detection_classification(img, perception_cfg, draw=False)
-                except Exception as sign_e:
-                    print(f"Sign detection error: {sign_e}")
-                    sign_detections = []
-                
-                try:
-                    # Vehicle & Obstacle Detection
-                    object_detections, _ = object_detection(img, perception_cfg, draw=False)
-                except Exception as vehicle_e:
-                    print(f"Vehicle detection error: {vehicle_e}")
-                    object_detections = []
-
-                try:
-                    # Traffic Light Detection
-                    traffic_light_detections = traffic_light_detection(img, perception_cfg, draw=False)
-                except Exception as tl_e:
-                    print(f"Traffic light detection error: {tl_e}")
-                    traffic_light_detections = []
-                
-                # Combine and display all detections
+            if step_i % 80 == 0:
                 try:
                     combined_img = draw_combined_detections(img, sign_detections, object_detections, traffic_light_detections)
-                    #cv2.imshow('All Detections', combined_img)
                 except Exception as draw_e:
                     print(f"Error drawing detections: {draw_e}")
 
@@ -957,6 +831,8 @@ def main():
         print(f"Error: {e}")
     finally:
         cv2.destroyAllWindows()
+        if 'perception_client' in locals():
+            perception_client.shutdown()
         beamng.close()
 
 if __name__ == "__main__":

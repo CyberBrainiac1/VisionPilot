@@ -1,11 +1,11 @@
-# Update model paths
+# Docker Compose for VisionPilot microservices
 
 services:
   redis:
     image: "redis:alpine"
     container_name: "visionpilot_redis"
     ports:
-      - "3777:6777"
+      - "6379:6379"
     networks:
       - visionpilot_net
     healthcheck:
@@ -17,76 +17,152 @@ services:
   lane_detection:
     build:
       context: ..
-      dockerfile: /docker/lane_detection/Dockerfile.lane_detection
+      dockerfile: docker/dockerfiles/lane_detection/Dockerfile
     container_name: "visionpilot_lane_detection"
     environment:
-      - MODEL_PATH=/models/scnn_lanedet/scnn.pth
+      - MODEL_PATH=/models/scnn_lane_detection/scnn.pth
+      - PYTHONUNBUFFERED=1
     ports:
-      - "4777:7777"
+      - "4777:4777"
+    volumes:
+      - ../models/scnn_lane_detection:/models/scnn_lane_detection:ro
     networks:
       - visionpilot_net
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
   
   object_detection:
     build:
       context: ..
-      dockerfile: /docker/object_detection/Dockerfile.object_detection
+      dockerfile: docker/dockerfiles/object_detection/Dockerfile
     container_name: "visionpilot_object_detection"
     environment:
-      - MODEL_PATH=/models/object_detection/object_detection.pth
+      - MODEL_PATH=/models/object_detection/object_detection.pt
+      - PYTHONUNBUFFERED=1
     ports:
-      - "5777:7777"
+      - "5777:5777"
+    volumes:
+      - ../models/object_detection:/models/object_detection:ro
     networks:
       - visionpilot_net
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   traffic_light_detection:
     build:
       context: ..
-      dockerfile: /docker/traffic_light_detection/Dockerfile.traffic_light_detection
+      dockerfile: docker/dockerfiles/traffic_light_detection/Dockerfile
     container_name: "visionpilot_traffic_light_detection"
     environment:
-      - MODEL_PATH=/models/traffic_light/traffic_light.pth
+      - MODEL_PATH=/models/traffic_light/traffic_light_detection.pt
+      - PYTHONUNBUFFERED=1
     ports:
-      - "6777:7777"
+      - "6777:6777"
+    volumes:
+      - ../models/traffic_light:/models/traffic_light:ro
     networks:
       - visionpilot_net
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   sign_detection:
     build:
       context: ..
-      dockerfile: /docker/sign_detection/Dockerfile.sign_detection
+      dockerfile: docker/dockerfiles/sign_detection/Dockerfile
     container_name: "visionpilot_sign_detection"
     environment:
       - MODEL_PATH=/models/traffic_sign/traffic_sign_detection.pt
+      - PYTHONUNBUFFERED=1
     ports:
       - "7777:7777"
+    volumes:
+      - ../models/traffic_sign:/models/traffic_sign:ro
     networks:
       - visionpilot_net
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   sign_classification:
     build:
       context: ..
-      dockerfile: /docker/sign_classification/Dockerfile.sign_classification
+      dockerfile: docker/dockerfiles/sign_classification/Dockerfile
     container_name: "visionpilot_sign_classification"
     environment:
       - MODEL_PATH=/models/traffic_sign/traffic_sign_classification.h5
+      - PYTHONUNBUFFERED=1
     ports:
       - "8777:8777"
+    volumes:
+      - ../models/traffic_sign:/models/traffic_sign:ro
     networks:
       - visionpilot_net
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 networks:
   visionpilot_net:

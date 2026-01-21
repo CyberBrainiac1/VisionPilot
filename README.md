@@ -11,6 +11,7 @@
 </p>
 
 ## Table of Contents
+
 - [VisionPilot: Autonomous Driving Simulation, Computer Vision \& Real-Time Perception (BeamNG.tech)](#visionpilot-autonomous-driving-simulation-computer-vision--real-time-perception-beamngtech)
   - [Table of Contents](#table-of-contents)
   - [Overview](#overview)
@@ -40,9 +41,7 @@
     - [BeamNG.tech Citation](#beamngtech-citation)
   - [License](#license)
 
-
 ## Overview
-
 
 A modular Python project for autonomous driving research and prototyping, fully integrated with the BeamNG.tech simulator and Foxglove visualization. This system combines traditional computer vision and state-of-the-art deep learning (CNN, U-Net, YOLO, SCNN) with real-time sensor fusion and autonomous vehicle control to tackle:
 
@@ -77,11 +76,11 @@ This demo shows real-time traffic sign detection and classification:
 
 **Extended Demo:** [Watch the full video here](https://youtu.be/ujGkQJ2BqV0)
 
-
 > VisionPilot does not yet support multi-camera. This is for demonstration purposes only.
+
 ---
 
-## Traffic Light Detection & Classification Demo
+### Traffic Light Detection & Classification Demo
 
 This demo shows real-time traffic light detection and classification:
 
@@ -101,7 +100,7 @@ Watch the improved autonomous lane keeping demo (v2) in BeamNG.tech, featuring s
 
 > Note: Very low-light (tunnel) scenarios are not yet supported.
 
-#### Previous Lane Detection Demo (v1)
+### Previous Lane Detection Demo (v1)
 
 The original demo is still available for reference:
 
@@ -109,8 +108,7 @@ The original demo is still available for reference:
 
 ---
 
-## Foxglove Visualization Demo
-
+### Foxglove Visualization Demo
 
 See real-time LiDAR point cloud streaming and autonomous vehicle telemetry in Foxglove Studio:
 
@@ -120,8 +118,7 @@ See real-time LiDAR point cloud streaming and autonomous vehicle telemetry in Fo
 
 ---
 
-## Segmentation Demo
-
+### Segmentation Demo
 
 See real-time image segmentation using front and rear cameras:
 
@@ -129,21 +126,20 @@ See real-time image segmentation using front and rear cameras:
 
 **Extended Demo:** [Watch the full video here](https://youtu.be/4PAqcUKqn6c?si=UHw-mw7iLZKGXvav)
 
-
 > More demo videos and visualizations will be added as features are completed.
 
 ## Sensor Suite
 
 The vehicle is equipped with a comprehensive multi-sensor suite for autonomous perception and control:
 
-| Sensor | Specification | Purpose |
-|--------|---------------|---------|
-| **Front Camera** | 1920x1080 @ 50Hz, 70° FOV, Depth enabled | Lane detection, traffic signs, traffic lights, object detection |
-| **LiDAR (Top)** | 80 vertical lines, 360° horizontal, 120m range, 20Hz | Obstacle detection, 3D scene understanding |
-| **Front Radar** | 200m range, 128×64 bins, 50Hz | Collision avoidance, adaptive cruise control |
-| **Rear Left & Right Radar** | 30m range, 64×32 bins, 50Hz | Blindspot monitoring, rear object detection ||
-| **Dual GPS** | Front & rear positioning @ 50Hz | Localization reference |
-| **IMU** | 100Hz update rate | Vehicle dynamics, motion estimation |
+| Sensor                      | Specification                                        | Purpose                                                         |
+| --------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- | --- |
+| **Front Camera**            | 1920x1080 @ 50Hz, 70° FOV, Depth enabled             | Lane detection, traffic signs, traffic lights, object detection |
+| **LiDAR (Top)**             | 80 vertical lines, 360° horizontal, 120m range, 20Hz | Obstacle detection, 3D scene understanding                      |
+| **Front Radar**             | 200m range, 128×64 bins, 50Hz                        | Collision avoidance, adaptive cruise control                    |
+| **Rear Left & Right Radar** | 30m range, 64×32 bins, 50Hz                          | Blindspot monitoring, rear object detection                     |     |
+| **Dual GPS**                | Front & rear positioning @ 50Hz                      | Localization reference                                          |
+| **IMU**                     | 100Hz update rate                                    | Vehicle dynamics, motion estimation                             |
 
 <table>
   <tr>
@@ -163,6 +159,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 ## Roadmap
 
 ### Perception
+
 - [x] Sign classification & Detection (CNN / YOLOv11m)
 - [x] Traffic light classification & Detection (CNN / YOLOv11m)
 - [x] Lane detection Fusion (SCNN / CV)
@@ -182,6 +179,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [ ] 💤 Overtaking, Merging (Will be part of Path Planning)
 
 ### Sensor Fusion & Calibration
+
 - [ ] 🔥 Kalman Filtering
 - [x] Integrate Radar
 - [x] Integrate Lidar
@@ -198,6 +196,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
   - [ ] Sensor status diagnostics and failover
 
 ### Control & Planning
+
 - [x] Integrate vehicle control (Throttle, Steering, Braking Implemented) (PID needs further tuning)
 - [x] Integrate PIDF controller
 - [x] ⭐ Adaptive Cruise Control (Currently only basic Cruise Control implemented)
@@ -215,6 +214,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [ ] 💤💤 Advanced traffic participant prediction (trajectory, intent)
 
 ### Simulation & Scenarios
+
 - [x] Integrate and test in BeamNG.tech simulation (replacing CARLA)
 - [x] Modularize and clean up BeamNG.tech pipeline
 - [x] Tweak lane detection parameters and thresholds
@@ -224,6 +224,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [ ] 💤💤 Test using actual RC car
 
 ### Visualization & Logging
+
 - [x] ⭐ Full Foxglove visualization integration (Overhaul needed)
 - [x] Modular YAML configuration system
 - [x] Real-time drive logging and telemetry
@@ -233,6 +234,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [ ] Live Map Visualization
 
 ### Deployment & Infrastructure
+
 - [ ] Containerize Models for easy deployment and scalability (Also eliminates dependency issues)
   - [ ] Message Broker (redis/rabbitmq)
   - [ ] Create docker compose
@@ -240,17 +242,20 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
   - [ ] Refactor beamng.py
 
 ### README To-Dos
+
 - [x] Add demo images and videos to README
 - [ ] Add performance benchmarks section
 - [x] Add Table of Contents for easier navigation
 
 ### Other
+
 - [x] Vibe-Code a website for the project
 - [x] Redo project structure for better modularity
-  
+
 > Driver Monitoring System would've been pretty cool but human drivers are not implemented in BeamNG.tech
 
 ## Legend
+
 > 🔥 = High Priority
 
 > ⭐ = Complete but still being improved/tuned/changed (not final version)
@@ -260,8 +265,8 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 > 💤💤 = Very Low Priority, may not be implement
 
 ## Note on Installation
-> **Status:** This project is currently in **active development**. A stable, production-ready release with pre-trained models and complete documentation will be available eventually.
 
+> **Status:** This project is currently in **active development**. A stable, production-ready release with pre-trained models and complete documentation will be available eventually.
 
 ## Known Limitations
 
@@ -280,14 +285,17 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 ## Credits
 
-**Datasets:** 
+**Datasets:**
+
 - CU Lane, LISA, GTSRB, Mapillary, BDD100K
 
 **Simulation & Tools:**
+
 - BeamNG.tech by [BeamNG GmbH](https://www.beamng.tech/)
 - Foxglove Studio for visualization
 
 **Special Thanks:**
+
 - Kaggle for free GPU resources (model training)
 - Mr. Pratt (teacher/supervisor) for guidance
 
