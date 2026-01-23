@@ -11,8 +11,6 @@ from beamngpy import BeamNGpy, Scenario, Vehicle
 from beamngpy.sensors import Camera, Lidar, Radar, GPS, AdvancedIMU
 from foxglove.schemas import Color
 
-from config.config import SIGN_DETECTION_MODEL, SIGN_CLASSIFICATION_MODEL, VEHICLE_PEDESTRIAN_MODEL, SCNN_LANE_DETECTION_MODEL, LIGHT_DETECTION_CLASSIFICATION_MODEL
-
 from ultralytics import YOLO
 import tensorflow as tf
 from tensorflow.keras.models import load_model
@@ -766,64 +764,46 @@ def main():
             except Exception as lidar_send_e:
                 print(f"Error sending LiDAR to Foxglove: {lidar_send_e}")
 
-            if step_i % 80 == 0:
+            try:
                 timestamp_ns = get_timestamp_ns()
-                # Send vehicle detections
-                if object_detections:
-                    for detection in object_detections:
-                        try:
-                            bbox = detection['bbox']
-                            vehicle_det_message = {
-                                "timestamp": timestamp_ns,
-                                "type": detection['class'],
-                                "x": float((bbox[0] + bbox[2]) / 2),
-                                "y": float((bbox[1] + bbox[3]) / 2),
-                                "width": float(bbox[2] - bbox[0]),
-                                "height": float(bbox[3] - bbox[1]),
-                                "confidence": float(detection['confidence'])
-                            }
-                            bridge.vehicle_channel.log(vehicle_det_message)
-                            print(f"Vehicle detection sent: {detection['class']}")
-                        except Exception as e:
-                            print(f"Error sending vehicle detection: {e}")
+                all_detections = []
                 
-                # Send sign detections
-                if sign_detections:
-                    for sign_det in sign_detections:
-                        try:
-                            bbox = sign_det['bbox']
-                            sign_message = {
-                                "timestamp": timestamp_ns,
-                                "type": sign_det.get('classification', 'Unknown'),
-                                "x": float((bbox[0] + bbox[2]) / 2),
-                                "y": float((bbox[1] + bbox[3]) / 2),
-                                "width": float(bbox[2] - bbox[0]),
-                                "height": float(bbox[3] - bbox[1]),
-                                "confidence": float(sign_det.get('classification_confidence', 0.0))
-                            }
-                            bridge.sign_channel.log(sign_message)
-                            print(f"Sign detection sent: {sign_det.get('classification', 'Unknown')}")
-                        except Exception as e:
-                            print(f"Error sending sign detection: {e}")
-
-                # Send traffic light detections
-                if traffic_light_detections:
-                    for tl_det in traffic_light_detections:
-                        try:
-                            bbox = tl_det['bbox']
-                            tl_message = {
-                                "timestamp": timestamp_ns,
-                                "type": tl_det.get('class', 'Unknown'),
-                                "x": float((bbox[0] + bbox[2]) / 2),
-                                "y": float((bbox[1] + bbox[3]) / 2),
-                                "width": float(bbox[2] - bbox[0]),
-                                "height": float(bbox[3] - bbox[1]),
-                                "confidence": float(tl_det.get('confidence', 0.0))
-                            }
-                            bridge.traffic_light_channel.log(tl_message)
-                            print(f"Traffic light detection sent: {tl_det.get('class', 'Unknown')}")
-                        except Exception as e:
-                            print(f"Error sending traffic light detection: {e}")
+                for detection in object_detections:
+                    all_detections.append({
+                        'bbox': detection['bbox'],
+                        'class': detection['class'],
+                        'confidence': detection['confidence'],
+                        'type': 'vehicle'
+                    })
+                
+                for sign_det in sign_detections:
+                    all_detections.append({
+                        'bbox': sign_det['bbox'],
+                        'class': sign_det.get('classification', 'Sign'),
+                        'confidence': sign_det.get('classification_confidence', 0.0),
+                        'type': 'sign'
+                    })
+                
+                for tl_det in traffic_light_detections:
+                    all_detections.append({
+                        'bbox': tl_det['bbox'],
+                        'class': tl_det.get('class', 'Traffic Light'),
+                        'confidence': tl_det.get('confidence', 0.0),
+                        'type': 'traffic_light'
+                    })
+                
+                if all_detections:
+                    bridge.send_2d_detections(all_detections, timestamp_ns, image_width=1280, image_height=720)
+                    
+                    bridge.send_2d_detections_as_3d(
+                        all_detections,
+                        timestamp_ns,
+                        camera_pos=car_pos + np.array([0, -1.3, 1.4]),
+                        camera_dir=direction,
+                        frame_id="map"
+                    )
+            except Exception as det_send_e:
+                print(f"Error sending detections: {det_send_e}")
 
     except KeyboardInterrupt:
         print("Interrupted by user")

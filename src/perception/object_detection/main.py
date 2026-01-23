@@ -1,11 +1,11 @@
-from src.perception.object_detection import detect_vehicles_pedestrians
+from src.perception.object_detection.object_detection import detect_objects
 import cv2
 
 default_threshold = 0.4
 
 def process_frame(img, confidence_threshold=default_threshold, draw_detections=True):
     try:
-        detections = detect_vehicles_pedestrians(img)
+        detections = detect_objects(img)
 
         if not detections:
             detections = []

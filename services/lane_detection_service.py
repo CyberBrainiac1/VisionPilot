@@ -26,8 +26,14 @@ def load_models():
     
     try:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        model = SCNN(input_size=512, pretrained=False)
-        model.load_state_dict(torch.load(model_path, map_location=device))
+        model = SCNN(input_size=(800, 288), pretrained=False)
+        
+        checkpoint = torch.load(model_path, map_location=device)
+        if isinstance(checkpoint, dict) and 'net' in checkpoint:
+            model.load_state_dict(checkpoint['net'])
+        else:
+            model.load_state_dict(checkpoint)
+        
         model = model.to(device)
         model.eval()
         

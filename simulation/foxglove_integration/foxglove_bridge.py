@@ -18,6 +18,7 @@ from foxglove.channels import (
     FrameTransformsChannel,
     CompressedImageChannel,
     LinePrimitiveChannel,
+    ImageAnnotationsChannel,
 )
 from foxglove.schemas import (
     Timestamp,
@@ -38,6 +39,12 @@ from foxglove.schemas import (
     FrameTransforms,
     LinePrimitive,
     LinePrimitiveLineType,
+    ImageAnnotations,
+    PointsAnnotation,
+    PointsAnnotationType,
+    Point2,
+    TextAnnotation,
+    Duration,
 )
 
 class FoxgloveBridge:
@@ -139,62 +146,11 @@ class FoxgloveBridge:
         # Lane path channel (LinePrimitive)
         self.channels['lane_path'] = LinePrimitiveChannel(topic="/lane_path")
         
-        # Vehicle detection channel (JSON)
-        self.channels['vehicle_detection'] = Channel(
-            topic="/vehicle_detections",
-            message_encoding="json",
-            schema={
-                "type": "object",
-                "properties": {
-                    "timestamp": {"type": "integer"},
-                    "type": {"type": "string"},
-                    "x": {"type": "number"},
-                    "y": {"type": "number"},
-                    "width": {"type": "number"},
-                    "height": {"type": "number"},
-                    "confidence": {"type": "number"}
-                }
-            }
-        )
-        self.vehicle_channel = self.channels['vehicle_detection']
+        # Image annotations for all 2D bounding boxes
+        self.channels['image_annotations'] = ImageAnnotationsChannel(topic="/camera/annotations")
         
-        # Sign detection channel (JSON)
-        self.channels['sign_detection'] = Channel(
-            topic="/sign_detections",
-            message_encoding="json",
-            schema={
-                "type": "object",
-                "properties": {
-                    "timestamp": {"type": "integer"},
-                    "type": {"type": "string"},
-                    "x": {"type": "number"},
-                    "y": {"type": "number"},
-                    "width": {"type": "number"},
-                    "height": {"type": "number"},
-                    "confidence": {"type": "number"}
-                }
-            }
-        )
-        self.sign_channel = self.channels['sign_detection']
-
-        # Traffic Light detection channel (JSON)
-        self.channels['traffic_light_detection'] = Channel(
-            topic="/traffic_light_detections",
-            message_encoding="json",
-            schema={
-                "type": "object",
-                "properties": {
-                    "timestamp": {"type": "integer"},
-                    "type": {"type": "string"},
-                    "x": {"type": "number"},
-                    "y": {"type": "number"},
-                    "width": {"type": "number"},
-                    "height": {"type": "number"},
-                    "confidence": {"type": "number"}
-                }
-            }
-        )
-        self.traffic_light_channel = self.channels['traffic_light_detection']
+        # 3D detections scene (for 3D bounding boxes using cubes)
+        self.channels['detections_3d'] = SceneUpdateChannel(topic="/detections_3d")
         
         print("All Foxglove channels initialized")
     
@@ -554,6 +510,8 @@ class FoxgloveBridge:
         if lane_points is None or len(lane_points) < 2:
             return
         
+        timestamp = self._timestamp_to_time(timestamp_ns)
+        
         if color is None:
             color = Color(r=1.0, g=1.0, b=0.0, a=1.0)
         
@@ -574,5 +532,222 @@ class FoxgloveBridge:
             color=color
         )
         
-        self.channels['lane_path'].log(line_primitive)
+        entity = SceneEntity(
+            timestamp=timestamp,
+            frame_id=frame_id,
+            id=lane_id,
+            lines=[line_primitive]
+        )
+        
+        scene_update = SceneUpdate(entities=[entity])
+        self.channels['lane_path'].log(scene_update)
+    
+    def send_2d_detections(self, detections, timestamp_ns, image_width=1280, image_height=720):
+        """
+        Send 2D bounding boxes as ImageAnnotations overlay on camera image
+        Args:
+            detections: list of detection dicts with 'bbox', 'class', 'confidence', 'type' (vehicle/sign/traffic_light)
+            timestamp_ns: timestamp in nanoseconds
+            image_width: width of the image in pixels
+            image_height: height of the image in pixels
+        """
+        if not detections:
+            return
+        
+        timestamp = self._timestamp_to_time(timestamp_ns)
+        points_annotations = []
+        text_annotations = []
+        
+        for det in detections:
+            bbox = det.get('bbox', [])
+            if len(bbox) != 4:
+                continue
+            
+            x1, y1, x2, y2 = bbox
+            det_type = det.get('type', 'unknown')
+            det_class = det.get('class', 'object')
+            confidence = det.get('confidence', 0.0)
+            
+            if det_type == 'vehicle':
+                outline_color = Color(r=0.0, g=1.0, b=0.0, a=1.0)
+            elif det_type == 'sign':
+                outline_color = Color(r=0.0, g=0.0, b=1.0, a=1.0)
+            elif det_type == 'traffic_light':
+                outline_color = Color(r=1.0, g=0.65, b=0.0, a=1.0)
+            else:
+                outline_color = Color(r=1.0, g=1.0, b=1.0, a=1.0)
+            
+            box_points = [
+                Point2(x=float(x1), y=float(y1)),
+                Point2(x=float(x2), y=float(y1)),
+                Point2(x=float(x2), y=float(y2)),
+                Point2(x=float(x1), y=float(y2)),
+            ]
+            
+            points_annotation = PointsAnnotation(
+                timestamp=timestamp,
+                type=PointsAnnotationType.LINE_LOOP,
+                points=box_points,
+                outline_color=outline_color,
+                thickness=2.0
+            )
+            points_annotations.append(points_annotation)
+            
+            label = f"{det_class} {confidence:.2f}"
+            text_annotation = TextAnnotation(
+                timestamp=timestamp,
+                position=Point2(x=float(x1), y=float(y1 - 5)),
+                text=label,
+                font_size=12.0,
+                text_color=outline_color,
+                background_color=Color(r=0.0, g=0.0, b=0.0, a=0.7)
+            )
+            text_annotations.append(text_annotation)
+        
+        image_annotations = ImageAnnotations(
+            points=points_annotations,
+            texts=text_annotations
+        )
+        
+        self.channels['image_annotations'].log(image_annotations)
+    
+    def send_3d_detections(self, detections_3d, timestamp_ns, frame_id="map"):
+        """
+        Send 3D bounding boxes as CubePrimitives (for LiDAR object detection)
+        Args:
+            detections_3d: list of dicts with 'position' (x,y,z), 'size' (w,h,d), 'orientation' (quat), 'class', 'confidence', 'type'
+            timestamp_ns: timestamp in nanoseconds
+            frame_id: frame ID (default: "map")
+        """
+        if not detections_3d:
+            return
+        
+        timestamp = self._timestamp_to_time(timestamp_ns)
+        entities = []
+        
+        for i, det in enumerate(detections_3d):
+            position = det.get('position', [0, 0, 0])
+            size = det.get('size', [1, 1, 1])
+            orientation = det.get('orientation', [0, 0, 0, 1])
+            det_type = det.get('type', 'unknown')
+            det_class = det.get('class', 'object')
+            
+            if det_type == 'vehicle':
+                cube_color = Color(r=0.0, g=1.0, b=0.0, a=0.5)
+            elif det_type == 'sign':
+                cube_color = Color(r=0.0, g=0.0, b=1.0, a=0.5)
+            elif det_type == 'traffic_light':
+                cube_color = Color(r=1.0, g=0.65, b=0.0, a=0.5)
+            else:
+                cube_color = Color(r=1.0, g=1.0, b=1.0, a=0.5)
+            
+            cube = CubePrimitive(
+                pose=Pose(
+                    position=Vector3(x=float(position[0]), y=float(position[1]), z=float(position[2])),
+                    orientation=Quaternion(x=float(orientation[0]), y=float(orientation[1]), z=float(orientation[2]), w=float(orientation[3]))
+                ),
+                size=Vector3(x=float(size[0]), y=float(size[1]), z=float(size[2])),
+                color=cube_color
+            )
+            
+            entity = SceneEntity(
+                timestamp=timestamp,
+                frame_id=frame_id,
+                id=f"detection_3d_{i}",
+                cubes=[cube]
+            )
+            entities.append(entity)
+        
+        if entities:
+            scene_update = SceneUpdate(entities=entities)
+            self.channels['detections_3d'].log(scene_update)
+    
+    def send_2d_detections_as_3d(self, detections, timestamp_ns, camera_pos, camera_dir, frame_id="map"):
+        """
+        Convert 2D detections to approximate 3D positions for visualization
+        Uses estimated depth based on detection type and size
+        Args:
+            detections: list of detection dicts with 'bbox', 'class', 'confidence', 'type'
+            timestamp_ns: timestamp in nanoseconds
+            camera_pos: camera position [x, y, z]
+            camera_dir: camera direction vector [x, y, z]
+            frame_id: frame ID (default: "map")
+        """
+        if not detections or camera_pos is None or camera_dir is None:
+            return
+        
+        timestamp = self._timestamp_to_time(timestamp_ns)
+        entities = []
+        
+        for i, det in enumerate(detections):
+            bbox = det.get('bbox', [])
+            if len(bbox) != 4:
+                continue
+            
+            x1, y1, x2, y2 = bbox
+            det_type = det.get('type', 'unknown')
+            det_class = det.get('class', 'object')
+            
+            bbox_width = x2 - x1
+            bbox_height = y2 - y1
+            
+            if det_type == 'vehicle':
+                cube_color = Color(r=0.0, g=1.0, b=0.0, a=0.3)
+                estimated_depth = max(10.0, 50.0 * (100.0 / bbox_width))
+                size = Vector3(x=4.5, y=1.8, z=1.5)
+            elif det_type == 'sign':
+                cube_color = Color(r=0.0, g=0.0, b=1.0, a=0.5)
+                estimated_depth = max(5.0, 30.0 * (50.0 / bbox_width))
+                size = Vector3(x=0.8, y=0.2, z=0.8)
+            elif det_type == 'traffic_light':
+                cube_color = Color(r=1.0, g=0.65, b=0.0, a=0.5)
+                estimated_depth = max(10.0, 40.0 * (80.0 / bbox_height))
+                size = Vector3(x=0.3, y=0.2, z=0.8)
+            else:
+                continue
+            
+            center_x_norm = ((x1 + x2) / 2 - 640) / 640
+            center_y_norm = ((y1 + y2) / 2 - 360) / 360
+            
+            cam_forward = np.array(camera_dir)
+            cam_forward = cam_forward / np.linalg.norm(cam_forward)
+            
+            cam_right = np.cross(cam_forward, np.array([0, 0, 1]))
+            if np.linalg.norm(cam_right) > 0.001:
+                cam_right = cam_right / np.linalg.norm(cam_right)
+            else:
+                cam_right = np.array([1, 0, 0])
+            
+            cam_up = np.cross(cam_right, cam_forward)
+            cam_up = cam_up / np.linalg.norm(cam_up)
+            
+            offset = (
+                estimated_depth * cam_forward +
+                center_x_norm * 30.0 * cam_right +
+                center_y_norm * -20.0 * cam_up
+            )
+            
+            position = np.array(camera_pos) + offset
+            
+            cube = CubePrimitive(
+                pose=Pose(
+                    position=Vector3(x=float(position[0]), y=float(position[1]), z=float(position[2])),
+                    orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0)
+                ),
+                size=size,
+                color=cube_color
+            )
+            
+            entity = SceneEntity(
+                timestamp=timestamp,
+                frame_id=frame_id,
+                id=f"{det_type}_{i}",
+                lifetime=Duration(sec=0, nsec=500_000_000),
+                cubes=[cube]
+            )
+            entities.append(entity)
+        
+        if entities:
+            scene_update = SceneUpdate(entities=entities)
+            self.channels['detections_3d'].log(scene_update)
 

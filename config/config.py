@@ -7,7 +7,7 @@ RESULTS_DIR = BASE_DIR / "results"
 IMAGES_DIR = BASE_DIR / "images"
 VIDEOS_DIR = BASE_DIR / "videos"
 
-OBJECT_DETECTION = MODELS_DIR / "object_detection" / "object_detection.pt"
+OBJECT_DETECTION_MODEL = MODELS_DIR / "object_detection" / "object_detection.pt"
 SIGN_DETECTION_MODEL = MODELS_DIR / "traffic_sign" / "traffic_sign_detection.pt"
 SIGN_CLASSIFICATION_MODEL = MODELS_DIR / "traffic_sign" / "traffic_sign_classification.h5"
 LIGHT_DETECTION_CLASSIFICATION_MODEL = MODELS_DIR / "traffic_light" / "traffic_light_detection.pt"
