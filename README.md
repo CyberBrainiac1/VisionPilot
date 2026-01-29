@@ -47,11 +47,13 @@ A modular Python project for autonomous driving research and prototyping, fully 
 
 - Lane detection (Traditional CV & SCNN)
 - Traffic sign classification & detection (CNN, YOLO)
-- Traffic light detection & classification (YOLO, CNN)
+- Traffic light detection & classification (YOLO)
 - Vehicle & pedestrian detection and recognition (YOLO)
 - Multi-sensor fusion (Camera, LiDAR, Radar, GPS, IMU)
 - Multi-model inference, real-time simulation, autonomous driving with PID control (BeamNG.tech)
+- Containerized multi-model architecture (Docker-based), orchestrated via a central inference aggregator service
 - Cruise control
+- Automatic Emergency Breaking AEB
 - Real-time visualization and monitoring (Foxglove WebSocket)
 - Modular configuration system (YAML-based)
 - Drive logging and telemetry
@@ -133,13 +135,13 @@ See real-time image segmentation using front and rear cameras:
 The vehicle is equipped with a comprehensive multi-sensor suite for autonomous perception and control:
 
 | Sensor                      | Specification                                        | Purpose                                                         |
-| --------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- | --- |
+| --------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
 | **Front Camera**            | 1920x1080 @ 50Hz, 70° FOV, Depth enabled             | Lane detection, traffic signs, traffic lights, object detection |
 | **LiDAR (Top)**             | 80 vertical lines, 360° horizontal, 120m range, 20Hz | Obstacle detection, 3D scene understanding                      |
 | **Front Radar**             | 200m range, 128×64 bins, 50Hz                        | Collision avoidance, adaptive cruise control                    |
-| **Rear Left & Right Radar** | 30m range, 64×32 bins, 50Hz                          | Blindspot monitoring, rear object detection                     |     |
-| **Dual GPS**                | Front & rear positioning @ 50Hz                      | Localization reference                                          |
-| **IMU**                     | 100Hz update rate                                    | Vehicle dynamics, motion estimation                             |
+| **Rear Left & Right Radar** | 30m range, 64×32 bins, 50Hz                          | Blindspot monitoring, rear object detection                     |
+| **Dual GPS**                | Front & rear positioning @ 50Hz                      | Localization                                                    |
+| **IMU**                     | 100Hz update rate                                    | Vehicle dynamics, pose estimation                               |
 
 <table>
   <tr>
