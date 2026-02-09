@@ -1,8 +1,7 @@
 from src.sensor_fusion.lidar import collect_lidar_data
 import numpy as np
 
-from .lane_boundry import detect_lane_boundaries
-from .lidar_preprocessing import LidarPreprocessor
+from .preprocessing import LidarPreprocessor
 
 _preprocessor = LidarPreprocessor()
 
