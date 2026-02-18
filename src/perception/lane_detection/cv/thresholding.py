@@ -141,16 +141,7 @@ def color_threshold(image, avg_brightness=None):
     
     if avg_brightness is not None and 60 < avg_brightness < 120:
         combined_mask = cv2.bitwise_or(combined_mask, shadow_mask)
-    
-    combined_pixels = np.sum(combined_mask)
-    print(f"Combined color mask pixels: {combined_pixels}")
-    
-    # Debug: show left vs right asymmetry
-    midpoint = combined_mask.shape[1] // 2
-    left_pixels = np.sum(combined_mask[:, :midpoint])
-    right_pixels = np.sum(combined_mask[:, midpoint:])
-    print(f"  Color threshold left: {left_pixels}, right: {right_pixels}, diff: {left_pixels - right_pixels}")
-    
+        
     binary = np.zeros_like(hsv[:,:,0])
     binary[combined_mask > 0] = 1
     
