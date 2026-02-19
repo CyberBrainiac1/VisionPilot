@@ -9,6 +9,7 @@ from src.perception.lane_detection.cv.thresholding import apply_thresholds_with_
 from src.perception.lane_detection.cv.perspective import debug_perspective_live, get_src_points, perspective_warp
 from src.perception.lane_detection.cv.lane_finder import get_histogram, sliding_window_search, detect_lane_type, fill_dashed_lane_gaps
 from src.perception.lane_detection.cv.multi_lane.multi_lane_finder import detect_multiple_lanes, find_lane_boundaries
+from src.perception.lane_detection.multi_lane.lane_selector import get_current_lane
 from src.perception.lane_detection.metrics import calculate_curvature_and_deviation
 
 
@@ -95,6 +96,7 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
             warped_lane_img = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
             
             colors = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]  # Left, Center, Right
+            lane_names = ['left', 'center', 'right']
             
             for lane_idx, lane in enumerate(lanes):
                 ploty = lane['ploty']
@@ -123,8 +125,6 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
                 try:
                     warped_h, warped_w = binary_warped.shape
                     
-                    # Un-rotate: after 90-deg CW rotation, x becomes y and y becomes (width - x)
-                    # To reverse: x_orig = y_rot, y_orig = (width - x_rot)
                     left_x_orig = ploty
                     left_y_orig = warped_w - left_fitx
                     
@@ -144,6 +144,92 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
                     print(f"Lane {lane_idx} transform error: {lane_err}")
             
             cv2.imshow('Lane Lines CV', lane_overlay)
+
+        lane_info = get_current_lane(lanes, image_width=binary_warped.shape[1])
+        current_lane_data = lane_info['current_lane']
+        all_lanes_classified = lane_info['all_lanes']
+        
+        if debug_display and current_lane_data:
+            lane_overlay_shaded = img.copy()
+            lane_overlay_alpha = np.zeros_like(img, dtype=np.uint8)
+            
+            lane_colors = {
+                'left': (255, 100, 0),      # Orange
+                'center': (0, 255, 0),     # Green
+                'right': (0, 100, 255)     # Red
+            }
+            
+            for lane_class, lane_dict in all_lanes_classified.items():
+                lane = lane_dict['lane_data']
+                ploty = lane['ploty']
+                left_fitx = lane['left_fitx']
+                right_fitx = lane['right_fitx']
+                color = lane_colors.get(lane_class, (100, 100, 100))
+                
+                try:
+                    warped_h, warped_w = binary_warped.shape
+                    
+                    left_x_orig = ploty
+                    left_y_orig = warped_w - left_fitx
+                    right_x_orig = ploty
+                    right_y_orig = warped_w - right_fitx
+                    
+                    left_pts_unrot = np.array([np.transpose(np.vstack([left_x_orig, left_y_orig]))], dtype=np.float32)
+                    right_pts_unrot = np.array([np.transpose(np.vstack([right_x_orig, right_y_orig]))], dtype=np.float32)
+                    
+                    left_pts_orig = cv2.perspectiveTransform(left_pts_unrot, Minv)
+                    right_pts_orig = cv2.perspectiveTransform(right_pts_unrot, Minv)
+                    
+                    left_pts_list = left_pts_orig[0].astype(np.int32)
+                    right_pts_list = right_pts_orig[0].astype(np.int32)
+                    
+                    lane_polygon = np.vstack([left_pts_list, right_pts_list[::-1]])
+                    
+                    cv2.fillPoly(lane_overlay_alpha, [lane_polygon], color)
+                    
+                except Exception as shade_err:
+                    print(f"Lane shade error for {lane_class}: {shade_err}")
+            
+            lane_overlay_shaded = cv2.addWeighted(lane_overlay_shaded, 1.0, lane_overlay_alpha, 0.3, 0)
+            
+            for lane_class, lane_dict in all_lanes_classified.items():
+                lane = lane_dict['lane_data']
+                ploty = lane['ploty']
+                left_fitx = lane['left_fitx']
+                right_fitx = lane['right_fitx']
+                color = lane_colors.get(lane_class, (100, 100, 100))
+                
+                try:
+                    warped_h, warped_w = binary_warped.shape
+                    
+                    left_x_orig = ploty
+                    left_y_orig = warped_w - left_fitx
+                    right_x_orig = ploty
+                    right_y_orig = warped_w - right_fitx
+                    
+                    left_pts_unrot = np.array([np.transpose(np.vstack([left_x_orig, left_y_orig]))], dtype=np.float32)
+                    right_pts_unrot = np.array([np.transpose(np.vstack([right_x_orig, right_y_orig]))], dtype=np.float32)
+                    
+                    left_pts_orig = cv2.perspectiveTransform(left_pts_unrot, Minv)
+                    right_pts_orig = cv2.perspectiveTransform(right_pts_unrot, Minv)
+                    
+                    cv2.polylines(lane_overlay_shaded, np.int32([left_pts_orig]), False, color, 3)
+                    cv2.polylines(lane_overlay_shaded, np.int32([right_pts_orig]), False, color, 3)
+                    
+                    lane_bottom_x = int((left_pts_orig[-1][0][0] + right_pts_orig[-1][0][0]) / 2)
+                    lane_bottom_y = int((left_pts_orig[-1][0][1] + right_pts_orig[-1][0][1]) / 2)
+                    
+                    label_text = f"{lane_class.upper()}"
+                    if lane_class == current_lane_data['lane_class']:
+                        label_text += " (CURRENT)"
+                    
+                    cv2.putText(lane_overlay_shaded, label_text, (lane_bottom_x - 40, lane_bottom_y + 30),
+                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                    
+                except Exception as label_err:
+                    print(f"Lane label error for {lane_class}: {label_err}")
+            
+            cv2.imshow('Lanes with Shading', lane_overlay_shaded)
 
         all_metrics = []
         for lane_idx, lane in enumerate(lanes):

@@ -8,10 +8,10 @@ MEDIUM_BRIGHT_THRESHOLD = 180
 BRIGHT_THRESHOLD = 200
 
 # LAB L-channel thresholds (white lanes)
-L_THRESH_DARK = (185, 255)
-L_THRESH_MEDIUM = (220, 255)
-L_THRESH_BRIGHT = (230, 255)
-L_THRESH_DEFAULT = (215, 255)
+L_THRESH_DARK = (170, 255)
+L_THRESH_MEDIUM = (180, 255)
+L_THRESH_BRIGHT = (220, 255)
+L_THRESH_DEFAULT = (200, 255)
 
 # LAB B-channel thresholds (yellow lanes)
 B_THRESH_DARK = (145, 200)
@@ -20,10 +20,9 @@ B_THRESH_BRIGHT = (155, 200)
 B_THRESH_DEFAULT = (150, 200)
 
 # HLS S-channel thresholds (saturation)
-S_THRESH_DARK = (80, 255)
-S_THRESH_MEDIUM = (90, 255)
-S_THRESH_BRIGHT = (100, 255)
-S_THRESH_DEFAULT = (90, 255)
+S_THRESH_DARK = (120, 255)
+S_THRESH_BRIGHT = (180, 255)
+S_THRESH_DEFAULT = (230, 255)
 
 
 def abs_sobel_thresh(image, orient='x', sobel_kernel=3, thresh=(0, 255)):
@@ -91,12 +90,12 @@ def color_threshold(image, avg_brightness=None):
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     w_h_min, w_h_max = 0, 180
-    w_s_min, w_s_max = 0, 50
-    w_v_min, w_v_max = 160, 255
+    w_s_min, w_s_max = 0, 40
+    w_v_min, w_v_max = 200, 255
 
     y_h_min, y_h_max = 10, 45
-    y_s_min, y_s_max = 60, 255
-    y_v_min, y_v_max = 100, 255
+    y_s_min, y_s_max = 80, 255
+    y_v_min, y_v_max = 120, 255
 
     s_h_min, s_h_max = 0, 180
     s_s_min, s_s_max = 0, 20
@@ -117,28 +116,28 @@ def color_threshold(image, avg_brightness=None):
         print(f"Avg brightness: {avg_brightness:.1f}, Recent avg: {avg_recent:.1f}, Variance: {variance:.1f}")
         
         if avg_recent > BRIGHT_THRESHOLD:
-            w_s_max = 25
-            w_v_min = 200
-            y_s_min = 100
+            w_s_max = 30
+            w_v_min = 210
+            y_s_min = 90
             
         elif avg_recent > MEDIUM_BRIGHT_THRESHOLD:
-            w_v_min = 200
-            w_s_max = 20
+            w_v_min = 205
+            w_s_max = 35
             
         elif MEDIUM_LOW_THRESHOLD < avg_recent < MEDIUM_BRIGHT_THRESHOLD:
             w_v_min = 200
             w_s_max = 40
 
         elif DARK_THRESHOLD < avg_recent <= MEDIUM_LOW_THRESHOLD:
-            w_v_min = 150
-            w_s_max = 42
+            w_v_min = 180
+            w_s_max = 45
             s_v_max = 160
 
         elif avg_brightness <= DARK_THRESHOLD:
-            w_v_min = 120
-            w_s_max = 45
+            w_v_min = 160
+            w_s_max = 50
             y_v_min = 90
-            y_s_min = 50
+            y_s_min = 70
             s_v_max = 150
 
     # Apply white mask
@@ -238,7 +237,7 @@ def adaptive_majority_vote(image, avg_brightness, include_gradient=False):
     elif avg_brightness < DARK_THRESHOLD:
         s_thresh = S_THRESH_DARK
     else:
-        s_thresh = S_THRESH_MEDIUM
+        s_thresh = S_THRESH_DEFAULT
     
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
@@ -322,7 +321,7 @@ def apply_thresholds_with_voting(image, src_points=None, debug_display=False, us
         elif avg_brightness < DARK_THRESHOLD:
             s_thresh = S_THRESH_DARK
         else:
-            s_thresh = S_THRESH_MEDIUM
+            s_thresh = S_THRESH_DEFAULT
         
         s_binary = np.zeros_like(s_channel, dtype=np.uint8)
         s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
