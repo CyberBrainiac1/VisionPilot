@@ -163,6 +163,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 ### Perception
 
 - [x] Sign classification & Detection (CNN / YOLOv11m)
+  
 - [x] Traffic light classification & Detection (CNN / YOLOv11m)
 - [x] Lane detection Fusion (SCNN / CV)
 - [ ] 🔥🔥 YOLOP integration
@@ -192,6 +193,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 
 - [ ] 🔥 Kalman Filtering
   - [ ] Extended
+  
 - [x] Integrate Radar
 - [x] Integrate Lidar
 - [ ] Integrate GPS
@@ -204,6 +206,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 ### Control & Planning
 
 - [x] Integrate vehicle control (Throttle, Steering, Braking Implemented) (PID needs further tuning)
+  
 - [x] Integrate PIDF controller
 - [x] ⭐ Adaptive Cruise Control (Currently only basic Cruise Control implemented)
 - [x] ⭐ Automatic Emergency Braking AEB (Still an issue with crashing after EB activated)
@@ -226,6 +229,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 ### Simulation & Scenarios
 
 - [x] Integrate and test in BeamNG.tech simulation (replacing CARLA)
+  
 - [x] Modularize and clean up BeamNG.tech pipeline
 - [x] Tweak lane detection parameters and thresholds
 - [ ] Fog Weather conditions (Rain or snow not supported in BeamNG.tech)
@@ -237,6 +241,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 ### Visualization & Logging
 
 - [x] ⭐ Full Foxglove visualization integration (Overhaul needed)
+  
 - [x] Modular YAML configuration system
 - [x] Real-time drive logging and telemetry
 - [ ] Birds eye view BEV (Top down view of vehicle and surroundings)
@@ -251,17 +256,20 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
   - [ ] Message Broker (redis/rabbitmq)
   - [ ] Create docker compose
   - [ ] Aggregator service
+  
   - [ ] Refactor beamng.py
 
 ### README To-Dos
 
 - [x] Add demo images and videos to README
+  
 - [ ] Add performance benchmarks section
 - [x] Add Table of Contents for easier navigation
 
 ### Other
 
 - [x] Vibe-Code a website for the project
+  
 - [x] Redo project structure for better modularity
 
 > Driver Monitoring System would've been pretty cool but human drivers are not implemented in BeamNG.tech
