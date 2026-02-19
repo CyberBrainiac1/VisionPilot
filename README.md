@@ -165,45 +165,51 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [x] Sign classification & Detection (CNN / YOLOv11m)
 - [x] Traffic light classification & Detection (CNN / YOLOv11m)
 - [x] Lane detection Fusion (SCNN / CV)
+- [ ] 🔥🔥 YOLOP integration
+  - [ ] Drivable are segmenatation
+  - [ ] Lane detection
+  - [ ] Object detection
+- [ ] Contextual lane detection (Use road curvature to predict lane continuity)
 - [x] Advanced lane detection using OpenCV (robust highway, lighting, outlier handling)
 - [x] Integrate Majority Voting system for CV
+- [x] Lighting Condition Detection
 - [x] ⭐ Semantic Segmentatation (Already built not implemented here yet)
+  - [ ] Panoptic segmentation (instance + semantic)
+- [ ] Depth Estimation (Monocular for obstacle distance)
 - [x] ⭐ Real-Time Object Detection (Cars, Trucks, Buses, Pedestrians, Cyclists) (Trained)
 - [ ] 🔥 Speed Estimation using detection from camera and lidar
-  - [ ] Potentially use Multiple Object Tracking (MOT) for better speed estimation
-- [ ] Pedestrian intent prediction (crossing, standing, walking along road)
-- **Note:** Would Have to be tested in Carla as BeamNG.tech does not have pedestrians implemented
-- [ ] Vehicle State Classification (Break Lights, Turn Signals, Reverse Lights)
-- [ ] 🔥 Handle dashed lines better in lane detection
-- [ ] 🔥 Lidar Object Detection 3D
-- [ ] Detect multiple lanes
+  - [ ] Multiple Object Tracking (MOT)
+- [x] 🔥 Handle dashed lines better in lane detection
+- [ ] Road Marking Detection (Arrows, Crosswalks, Stop Lines)
+- [ ] 🔥🔥 Lidar Object Detection 3D
+- [ ] Ocluded Object Detection (Detect objects that are partially blocked or not visible in the camera view using radar/lidar)
+- [x] Detect multiple lanes
+- [ ] 💤 Classify lane types
 - [ ] 💤 Multi Camera Setup (Will implement after all other camera-based features are finished)
 - [ ] 💤 Overtaking, Merging (Will be part of Path Planning)
 
 ### Sensor Fusion & Calibration
 
 - [ ] 🔥 Kalman Filtering
+  - [ ] Extended
 - [x] Integrate Radar
 - [x] Integrate Lidar
 - [ ] Integrate GPS
 - [ ] Integrate IMU
 - [ ] Ultrasonic Sensor Integration
-- **Note:** Can easily be implemented with prebuilt Beamng ADAS module
-- [ ] Map Matching algorithm
 - [ ] 💤 SLAM (simultaneous localization and mapping)
-  - [ ] Build HD Map from Scratch
+  - [ ] Build HD Map of the BeamNG.tech map
   - [ ] Localize Vehicle on HD Map
-- [ ] Sensor Health Monitoring & Redundancy
-  - [ ] Redundant Front Radar for AEB
-  - [ ] Sensor status diagnostics and failover
 
 ### Control & Planning
 
 - [x] Integrate vehicle control (Throttle, Steering, Braking Implemented) (PID needs further tuning)
 - [x] Integrate PIDF controller
 - [x] ⭐ Adaptive Cruise Control (Currently only basic Cruise Control implemented)
-- [x] ⭐ Automatic Emergency Braking AEB
-  - [ ] Support using Camera and Lidar detections
+- [x] ⭐ Automatic Emergency Braking AEB (Still an issue with crashing after EB activated)
+  - [ ] Obstacle Avoidance (Steering away from obstacles instead of just braking)
+- [ ] Model Predictive Control MPC (More advanced control strategy that optimizes control inputs over a future time horizon)
+- [ ] Curve Speed Optimization (Slow down for sharp curves based on lane curvature)
 - [ ] Trajectory Predcition for surrounding vehicles
 - [ ] Blindspot Monitoring (Using left/right rear short range radars)
 - [ ] Traffic Rule Enforcement (Stop at red lights, stop signs, yield signs)
@@ -211,8 +217,10 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [ ] Global Path planning
 - [ ] Local Path planning
 - [ ] Lane Change Logic
+  - [ ] Change Blindspots before lane change
+  - [ ] Signal Lane Change
 - [ ] Parking Logic (Path finding / Parallel or Perpendicular)
-- [ ] 💤 End-to-end driving policy learning (RL, imitation learning)
+- [ ] 💤💤 U-Turn Logic (3-point turn)
 - [ ] 💤💤 Advanced traffic participant prediction (trajectory, intent)
 
 ### Simulation & Scenarios
@@ -223,6 +231,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [ ] Fog Weather conditions (Rain or snow not supported in BeamNG.tech)
 - [ ] Traffic scenarios: driving in heavy, moderate, and light traffic
 - [ ] Test all Systems in different lighting conditions (Day, Night, Dawn/Dusk, Tunnel)
+- [ ] Construction Zones (temporary lanes, cones, barriers)
 - [ ] 💤💤 Test using actual RC car
 
 ### Visualization & Logging
@@ -230,6 +239,7 @@ The vehicle is equipped with a comprehensive multi-sensor suite for autonomous p
 - [x] ⭐ Full Foxglove visualization integration (Overhaul needed)
 - [x] Modular YAML configuration system
 - [x] Real-time drive logging and telemetry
+- [ ] Birds eye view BEV (Top down view of vehicle and surroundings)
 - [ ] Real time Annotations Overlay in Foxglove
 - [ ] Show predicted trajectories in Foxglove
 - [ ] Show Global and local path plans in Foxglove
