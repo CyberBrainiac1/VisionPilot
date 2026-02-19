@@ -1,6 +1,30 @@
 import numpy as np
 import cv2
 
+# Brightness thresholds for adaptive behavior
+DARK_THRESHOLD = 80
+MEDIUM_LOW_THRESHOLD = 100
+MEDIUM_BRIGHT_THRESHOLD = 180
+BRIGHT_THRESHOLD = 200
+
+# LAB L-channel thresholds (white lanes)
+L_THRESH_DARK = (185, 255)
+L_THRESH_MEDIUM = (220, 255)
+L_THRESH_BRIGHT = (230, 255)
+L_THRESH_DEFAULT = (215, 255)
+
+# LAB B-channel thresholds (yellow lanes)
+B_THRESH_DARK = (145, 200)
+B_THRESH_MEDIUM = (150, 200)
+B_THRESH_BRIGHT = (155, 200)
+B_THRESH_DEFAULT = (150, 200)
+
+# HLS S-channel thresholds (saturation)
+S_THRESH_DARK = (80, 255)
+S_THRESH_MEDIUM = (90, 255)
+S_THRESH_BRIGHT = (100, 255)
+S_THRESH_DEFAULT = (90, 255)
+
 
 def abs_sobel_thresh(image, orient='x', sobel_kernel=3, thresh=(0, 255)):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -43,11 +67,11 @@ def gradient_thresholds(image, ksize=3, avg_brightness=None):
     mag_low, mag_high = 50, 120
     
     if avg_brightness is not None:
-        if avg_brightness < 80:
+        if avg_brightness < DARK_THRESHOLD:
             x_low = 30
             y_low = 30
             mag_low = 40
-        elif avg_brightness > 200:
+        elif avg_brightness > BRIGHT_THRESHOLD:
             x_high = 160
             y_high = 160
             mag_high = 160
@@ -92,29 +116,25 @@ def color_threshold(image, avg_brightness=None):
         
         print(f"Avg brightness: {avg_brightness:.1f}, Recent avg: {avg_recent:.1f}, Variance: {variance:.1f}")
         
-        #is_stable_lighting = variance < 50
-
-        # Implement adaptive thresholding based on lighting stability
-        
-        if avg_recent > 200:  # Very bright conditions (direct sunlight)
+        if avg_recent > BRIGHT_THRESHOLD:
             w_s_max = 25
             w_v_min = 200
             y_s_min = 100
             
-        elif avg_recent > 170:
+        elif avg_recent > MEDIUM_BRIGHT_THRESHOLD:
             w_v_min = 200
             w_s_max = 20
             
-        elif 100 < avg_recent < 170:
+        elif MEDIUM_LOW_THRESHOLD < avg_recent < MEDIUM_BRIGHT_THRESHOLD:
             w_v_min = 200
             w_s_max = 40
 
-        elif 70 < avg_recent <= 100:
+        elif DARK_THRESHOLD < avg_recent <= MEDIUM_LOW_THRESHOLD:
             w_v_min = 150
             w_s_max = 42
             s_v_max = 160
 
-        elif avg_brightness <= 70:  # Low light conditions
+        elif avg_brightness <= DARK_THRESHOLD:
             w_v_min = 120
             w_s_max = 45
             y_v_min = 90
@@ -148,96 +168,20 @@ def color_threshold(image, avg_brightness=None):
     return binary
 
 
-def lab_hls_threshold(image, avg_brightness=None):
-    """
-    Multi-colorspace thresholding using LAB and HLS color spaces.
-    Following CarND's empirical finding that combining multiple color spaces
-    provides robust lane detection.
-    
-    Args:
-        image (numpy array): RGB image
-        avg_brightness (float): Average brightness for adaptive thresholding
-    
-    Returns:
-        numpy array: Binary image with detected lane pixels
-    """
-    lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
-    l_channel = lab[:,:,0]
-    b_channel = lab[:,:,2]
-    
-    hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
-    s_channel = hls[:,:,2]
-    
-    # LAB L-channel: stricter threshold to reduce road noise
-    if avg_brightness is not None:
-        if avg_brightness > 200:  # Very bright
-            l_thresh = (230, 255)
-        elif avg_brightness > 170:  # Bright
-            l_thresh = (220, 255)
-        elif avg_brightness < 80:  # Dark
-            l_thresh = (185, 255)
-        else:  # Medium
-            l_thresh = (215, 255)
-    else:
-        l_thresh = (215, 255)
-    
-    l_binary = np.zeros_like(l_channel)
-    l_binary[(l_channel >= l_thresh[0]) & (l_channel <= l_thresh[1])] = 1
-    
-    # LAB B-channel: good for yellow detection (yellow has high B values)
-    if avg_brightness is not None:
-        if avg_brightness > 200:  # Very bright
-            b_thresh = (155, 200)
-        elif avg_brightness < 80:  # Dark
-            b_thresh = (145, 200)
-        else:  # Medium to bright
-            b_thresh = (150, 200)
-    else:
-        b_thresh = (150, 200)
-    
-    b_binary = np.zeros_like(b_channel)
-    b_binary[(b_channel >= b_thresh[0]) & (b_channel <= b_thresh[1])] = 1
-    
-    # HLS S-channel: proven robust for lane detection (CarND's finding)
-    # Saturation is good for colored lanes (yellow) in various lighting
-    if avg_brightness is not None:
-        if avg_brightness > 200:  # Very bright
-            s_thresh = (100, 255)
-        elif avg_brightness < 80:  # Dark
-            s_thresh = (80, 255)
-        else:  # Medium
-            s_thresh = (90, 255)
-    else:
-        s_thresh = (90, 255)
-    
-    s_binary = np.zeros_like(s_channel)
-    s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
-    
-    # Combine all channels
-    # L-channel for white, B-channel for yellow, S-channel for both
-    combined = np.zeros_like(l_channel)
-    combined[(l_binary == 1) | (b_binary == 1) | (s_binary == 1)] = 1
-    
-    return combined
-
-
 def majority_vote(binaries, n_vote):
     """
-    Majority voting system for combining multiple binary threshold results.
-    Following CarND's approach: requires n_vote out of total filters to agree.
+    Combine multiple thresholds: requires n_vote out of total filters to agree.
     
     Args:
         binaries (list): List of binary threshold results (numpy arrays)
-        n_vote (int): Number of filters that must agree (threshold)
+        n_vote (int): Number of filters that must agree
     
     Returns:
         numpy array: Binary image where pixels passed majority vote
     """
-    # Ensure all binaries are uint8 and same shape
     binaries = [b.astype(np.uint8) for b in binaries]
     stacked = np.stack(binaries, axis=-1)
     sum_binary = np.sum(stacked, axis=-1)
-    # Debug: print feature contributions
     print("Majority vote feature sums:", [np.sum(b) for b in binaries])
     print(f"Voting threshold: {n_vote} out of {len(binaries)} features")
     vote_binary = np.zeros_like(sum_binary)
@@ -247,20 +191,8 @@ def majority_vote(binaries, n_vote):
 
 def adaptive_majority_vote(image, avg_brightness, include_gradient=False):
     """
-    Adaptive majority voting that adjusts features and voting threshold
-    based on lighting conditions.
-    
-    Combines ALL color spaces for maximum robustness:
-    - HSV: Original adaptive white/yellow detection with sophisticated brightness logic
-    - LAB L-channel: White line detection
-    - LAB B-channel: Yellow line detection  
-    - HLS S-channel: Saturation-based detection
-    - Gradient: Edge detection (optional)
-    
-    Following recommendations from comparison report:
-    - Dark (<100): More permissive (3 out of 5-6 features)
-    - Medium (100-180): Balanced (3 out of 5-6 features) 
-    - Bright (>180): Stricter (4 out of 5-6 features)
+    Adaptive voting combining HSV, LAB L/B, HLS S, and optional gradient.
+    Voting threshold adjusts for lighting: dark/medium (3/n), bright (4/n).
     
     Args:
         image (numpy array): RGB image
@@ -270,10 +202,8 @@ def adaptive_majority_vote(image, avg_brightness, include_gradient=False):
     Returns:
         numpy array: Binary image from majority voting
     """
-    # 1. HSV Color threshold (your original sophisticated adaptive logic)
     hsv_binary = color_threshold(image, avg_brightness=avg_brightness)
     
-    # 2. Extract individual LAB/HLS channels for voting
     lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
     l_channel = lab[:,:,0]
     b_channel = lab[:,:,2]
@@ -281,59 +211,57 @@ def adaptive_majority_vote(image, avg_brightness, include_gradient=False):
     hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
     s_channel = hls[:,:,2]
     
-    # LAB L-channel: stricter threshold to reduce road noise
-    if avg_brightness > 200:  # Very bright
-        l_thresh = (230, 255)
-    elif avg_brightness < 80:  # Dark
-        l_thresh = (185, 255)
-    else:  # Medium
-        l_thresh = (220, 255)
+    # l channel for white
+    if avg_brightness > BRIGHT_THRESHOLD:
+        l_thresh = L_THRESH_BRIGHT
+    elif avg_brightness < DARK_THRESHOLD:
+        l_thresh = L_THRESH_DARK
+    else:
+        l_thresh = L_THRESH_MEDIUM
     l_binary = np.zeros_like(l_channel)
     l_binary[(l_channel >= l_thresh[0]) & (l_channel <= l_thresh[1])] = 1
     
-    # 4. LAB B-channel threshold (yellow detection)
-    if avg_brightness > 200:  # Very bright
-        b_thresh = (155, 200)
-    elif avg_brightness < 80:  # Dark
-        b_thresh = (145, 200)
-    else:  # Medium to bright
-        b_thresh = (150, 200)
+    # b channel for yellow
+    if avg_brightness > BRIGHT_THRESHOLD:
+        b_thresh = B_THRESH_BRIGHT
+    elif avg_brightness < DARK_THRESHOLD:
+        b_thresh = B_THRESH_DARK
+    else:
+        b_thresh = B_THRESH_MEDIUM
     
     b_binary = np.zeros_like(b_channel)
     b_binary[(b_channel >= b_thresh[0]) & (b_channel <= b_thresh[1])] = 1
     
-    # 5. HLS S-channel threshold (saturation - both colors)
-    if avg_brightness > 200:  # Very bright
-        s_thresh = (100, 255)
-    elif avg_brightness < 80:  # Dark
-        s_thresh = (80, 255)
-    else:  # Medium
-        s_thresh = (90, 255)
+    # s channel for saturation
+    if avg_brightness > BRIGHT_THRESHOLD:
+        s_thresh = S_THRESH_BRIGHT
+    elif avg_brightness < DARK_THRESHOLD:
+        s_thresh = S_THRESH_DARK
+    else:
+        s_thresh = S_THRESH_MEDIUM
     
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
     
-    # 6. Gradient features if requested
     if include_gradient:
         grad_binary = gradient_thresholds(image, avg_brightness=avg_brightness)
     
-    # Build feature list: HSV + LAB L (x2 weight for white detection) + LAB B + HLS S + (optional gradient)
-    # LAB L-channel gets double weight because white lane detection is critical
+    # l channel weighted 2x for white lane detection
     features = [hsv_binary, l_binary, l_binary, b_binary, s_binary]
     if include_gradient:
         features.append(grad_binary)
     n_features = len(features)
-    # Adaptive voting threshold
-    if avg_brightness < 100:
-        n_vote = max(2, n_features // 2)  # More permissive
+    
+    if avg_brightness < MEDIUM_LOW_THRESHOLD:
+        n_vote = max(2, n_features // 2)
         print(f"Dark mode: voting {n_vote}/{n_features}")
-    elif avg_brightness < 180:
-        n_vote = max(3, n_features // 2 + 1)  # Balanced
+    elif avg_brightness < MEDIUM_BRIGHT_THRESHOLD:
+        n_vote = max(3, n_features // 2 + 1)
         print(f"Medium mode: voting {n_vote}/{n_features}")
     else:
-        n_vote = max(4, n_features - 1)  # Stricter in bright
+        n_vote = max(4, n_features - 1)
         print(f"Bright mode: voting {n_vote}/{n_features}")
-    # Perform majority voting
+    
     result = majority_vote(features, n_vote)
     print(f"Majority vote pixels: {np.sum(result)}")
     print(f"  HSV: {np.sum(hsv_binary)}, L (x2): {np.sum(l_binary)}, B: {np.sum(b_binary)}, S: {np.sum(s_binary)}" + (f", Grad: {np.sum(grad_binary)}" if include_gradient else ""))
@@ -342,9 +270,7 @@ def adaptive_majority_vote(image, avg_brightness, include_gradient=False):
 
 def apply_thresholds_with_voting(image, src_points=None, debug_display=False, use_gradient=False):
     """
-    Apply thresholds using majority voting system
-    This is the NEW recommended approach that combines adaptive thresholding
-    with robust majority voting.
+    Apply adaptive majority voting thresholds with optional ROI masking.
     
     Args:
         image (numpy array): RGB image
@@ -355,7 +281,6 @@ def apply_thresholds_with_voting(image, src_points=None, debug_display=False, us
     Returns:
         tuple: (combined_binary, avg_brightness)
     """
-    # Calculate average brightness from ROI if src_points provided
     mask = None
     if src_points is not None:
         mask = np.zeros(image.shape[:2], dtype=np.uint8)
@@ -367,11 +292,8 @@ def apply_thresholds_with_voting(image, src_points=None, debug_display=False, us
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         avg_brightness = np.mean(gray)
     
-    print(f"Average brightness: {avg_brightness:.1f}")
-    
     combined_binary = adaptive_majority_vote(image, avg_brightness, include_gradient=use_gradient)
     
-    # Apply mask to binary image to keep only ROI region
     if mask is not None:
         combined_binary = combined_binary * mask
     
@@ -386,80 +308,65 @@ def apply_thresholds_with_voting(image, src_points=None, debug_display=False, us
         hls = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)
         s_channel = hls[:,:,2]
         
-        # L-channel binary (sync with majority voting)
-        if avg_brightness > 200:  # Very bright
-            l_thresh = (230, 255)
-        elif avg_brightness < 80:  # Dark
-            l_thresh = (185, 255)
-        else:  # Medium
-            l_thresh = (220, 255)
+        if avg_brightness > BRIGHT_THRESHOLD:
+            l_thresh = L_THRESH_BRIGHT
+        elif avg_brightness < DARK_THRESHOLD:
+            l_thresh = L_THRESH_DARK
+        else:
+            l_thresh = L_THRESH_MEDIUM
         l_binary = np.zeros_like(l_channel, dtype=np.uint8)
         l_binary[(l_channel >= l_thresh[0]) & (l_channel <= l_thresh[1])] = 1
         
-        # S-channel binary
-        if avg_brightness > 200:
-            s_thresh = (100, 255)
-        elif avg_brightness < 80:
-            s_thresh = (80, 255)
+        if avg_brightness > BRIGHT_THRESHOLD:
+            s_thresh = S_THRESH_BRIGHT
+        elif avg_brightness < DARK_THRESHOLD:
+            s_thresh = S_THRESH_DARK
         else:
-            s_thresh = (90, 255)
+            s_thresh = S_THRESH_MEDIUM
         
         s_binary = np.zeros_like(s_channel, dtype=np.uint8)
         s_binary[(s_channel >= s_thresh[0]) & (s_channel <= s_thresh[1])] = 1
         
-        # B-channel binary
-        if avg_brightness > 200:
-            b_thresh = (155, 200)
-        elif avg_brightness < 80:
-            b_thresh = (145, 200)
+        if avg_brightness > BRIGHT_THRESHOLD:
+            b_thresh = B_THRESH_BRIGHT
+        elif avg_brightness < DARK_THRESHOLD:
+            b_thresh = B_THRESH_DARK
         else:
-            b_thresh = (150, 200)
+            b_thresh = B_THRESH_MEDIUM
         
         b_binary = np.zeros_like(b_channel, dtype=np.uint8)
         b_binary[(b_channel >= b_thresh[0]) & (b_channel <= b_thresh[1])] = 1
         
-        # Gradient binary
         if use_gradient:
             grad_binary = gradient_thresholds(image, avg_brightness=avg_brightness)
             grad_binary_uint8 = grad_binary.astype(np.uint8)
         
         debug_img = np.zeros((combined_binary.shape[0], combined_binary.shape[1], 3), dtype=np.uint8)
-        
-        # Magenta: HSV detection (original adaptive logic)
         debug_img[hsv_binary_uint8 == 1] = [255, 0, 255]
-        
-        # Red: L-channel (white detection)
         debug_img[(hsv_binary_uint8 == 0) & (l_binary == 1)] = [0, 0, 255]
-        
-        # Green: S-channel (saturation)
         debug_img[(hsv_binary_uint8 == 0) & (l_binary == 0) & (s_binary == 1)] = [0, 255, 0]
-        
-        # Blue: B-channel (yellow detection)
         debug_img[(hsv_binary_uint8 == 0) & (l_binary == 0) & (s_binary == 0) & (b_binary == 1)] = [255, 0, 0]
-        
-        # Yellow: Multiple overlaps
         debug_img[(hsv_binary_uint8 == 1) & ((l_binary == 1) | (s_binary == 1))] = [0, 255, 255]
         
-        # Display individual channels
         hsv_display = np.dstack((hsv_binary_uint8, hsv_binary_uint8, hsv_binary_uint8)) * 255
-        cv2.imshow('HSV Adaptive (Original)', hsv_display)
+        cv2.imshow('HSV', hsv_display)
         
         l_display = np.dstack((l_binary, l_binary, l_binary)) * 255
-        cv2.imshow('LAB L-channel (White)', l_display)
+        cv2.imshow('LAB L', l_display)
         
         s_display = np.dstack((s_binary, s_binary, s_binary)) * 255
-        cv2.imshow('HLS S-channel (Saturation)', s_display)
+        cv2.imshow('HLS S', s_display)
         
         b_display = np.dstack((b_binary, b_binary, b_binary)) * 255
-        cv2.imshow('LAB B-channel (Yellow)', b_display)
+        cv2.imshow('LAB B', b_display)
         
         if use_gradient:
             grad_display = np.dstack((grad_binary_uint8, grad_binary_uint8, grad_binary_uint8)) * 255
-            cv2.imshow('Gradient Threshold', grad_display)
+            cv2.imshow('Gradient', grad_display)
         
         combined_display = np.dstack((combined_binary, combined_binary, combined_binary)) * 255
-        cv2.imshow('Majority Vote Result', combined_display)
+        cv2.imshow('Combined', combined_display)
         
-        cv2.imshow('Feature Contributions (All Color Spaces)', debug_img)
+        cv2.imshow('Debug', debug_img)
     
     return combined_binary, avg_brightness

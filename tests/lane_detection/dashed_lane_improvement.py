@@ -20,10 +20,10 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
     try:
         # manual points
         src_points = np.float32([
-            [8, 819],      # Bottom-Left
+            [50, 819],      # Bottom-Left
             [716, 675],    # Bottom-Right
             [1223, 670],   # Top-Right
-            [1909, 803]    # Top-Left
+            [1870, 803]    # Top-Left
         ])
 
         binary_image, avg_brightness = apply_thresholds_with_voting(
@@ -33,6 +33,11 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
             use_gradient=False
         )
         if debug_display:
+            frame_with_roi = img.copy()
+            roi_polygon = np.array(src_points, dtype=np.int32)
+            cv2.polylines(frame_with_roi, [roi_polygon], True, (0, 255, 0), 3)
+            cv2.imshow('Original Frame with ROI', frame_with_roi)
+            
             cv2.imshow('Binary Image CV', binary_image*255 if binary_image.max()<=1 else binary_image)
             cv2.waitKey(1)
         
@@ -194,7 +199,7 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
     
 
 if __name__ == "__main__":
-    video_path = "/Users/julian/Documents/github/self-driving-project/nl_highway.mp4"
+    video_path = "/Users/julian/Documents/github/self-driving-project/nl_highway_curve.mp4"
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():
