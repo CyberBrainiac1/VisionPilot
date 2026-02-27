@@ -378,11 +378,12 @@ def main():
     perception_client = PerceptionClient(
         host='localhost',
         service_ports={
-            'lane_detection': 4777,
+            'cv_lane_detection': 4777,
             'object_detection': 5777,
             'traffic_light_detection': 6777,
             'sign_detection': 7777,
-            'sign_classification': 8777
+            'sign_classification': 8777,
+            'yolop': 9777
         },
         timeout=2.0,
         auto_health_check=True
@@ -531,10 +532,34 @@ def main():
             vehicle_center = lane_metrics['vehicle_center']
             fused_confidence = lane_metrics['confidence']
 
+            # Extract CV lane detection results
+            cv_lane_results = perception_client.extract_cv_lane_detection(agg_result)
+            cv_confidence = cv_lane_results['confidence']
+            cv_result_image = cv_lane_results['result_image']
+            
+            # Display CV lane detection window
+            if cv_result_image is not None:
+                cv2.imshow('CV Lane Detection', cv_result_image)
+
             # Extract other detections
             object_detections = perception_client.extract_object_detection(agg_result)
             traffic_light_detections = perception_client.extract_traffic_light_detection(agg_result)
             sign_detections = perception_client.extract_sign_detection(agg_result)
+
+            # Extract YOLOP results
+            yolop_results = perception_client.extract_yolop(agg_result)
+            drivable_area = yolop_results['drivable_area']
+            lane_lines = yolop_results['lane_lines']
+
+            # Display drivable area window
+            if drivable_area is not None and drivable_area.size > 0:
+                drivable_area_img = cv2.resize(drivable_area.astype(np.uint8) * 255, (img.shape[1], img.shape[0]))
+                cv2.imshow('YOLOP - Drivable Area', drivable_area_img)
+            
+            # Display lane lines window
+            if lane_lines is not None and lane_lines.size > 0:
+                lane_lines_img = cv2.resize(lane_lines.astype(np.uint8) * 255, (img.shape[1], img.shape[0]))
+                cv2.imshow('YOLOP - Lane Lines', lane_lines_img)
 
             steering = steering_pid.update(-effective_deviation, dt)
             steering = np.clip(steering, -1.0, 1.0)
@@ -565,7 +590,6 @@ def main():
                 except Exception as draw_e:
                     print(f"Error drawing detections: {draw_e}")
 
-            # Lidar Road Boundaries
             try:
                 lidar_lane_boundaries, filtered_points = lidar_process_frame(lidar, beamng=beamng, speed=speed_kph, debug_window=None, vehicle=vehicle, car_position=car_pos, car_direction=direction)
             except Exception as lidar_e:
@@ -605,7 +629,7 @@ def main():
                         throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt) * 0.5
                         brake = 0.0
                     else:
-                        # No object detected - normal cruise control
+                        # No object detected normal cruise control
                         throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt)
                         brake = 0.0
                     

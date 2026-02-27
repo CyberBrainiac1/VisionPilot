@@ -367,26 +367,28 @@ def create_aggregator(host='localhost', port_base=4777, timeout=2.0):
     Create an aggregator with default service configuration.
     
     Services are expected to be running at:
-    - Lane detection: host:4777
+    - CV Lane Detection: host:4777
     - Object detection: host:5777
     - Traffic light: host:6777
     - Sign detection: host:7777
     - Sign classification: host:8777
+    - YOLOP: host:9777
     
     Args:
         host: Hostname where services are running
-        port_base: Base port (4777), other services on port_base+n
+        port_base: Base port (4777)
         timeout: Request timeout
     
     Returns:
         Configured PerceptionAggregator instance
     """
     service_config = {
-        'lane_detection': f'http://{host}:{port_base}',
-        'object_detection': f'http://{host}:{port_base + 1000}',
-        'traffic_light_detection': f'http://{host}:{port_base + 2000}',
-        'sign_detection': f'http://{host}:{port_base + 3000}',
-        'sign_classification': f'http://{host}:{port_base + 4000}'
+        'cv_lane_detection': f'http://{host}:4777',
+        'object_detection': f'http://{host}:5777',
+        'traffic_light_detection': f'http://{host}:6777',
+        'sign_detection': f'http://{host}:7777',
+        'sign_classification': f'http://{host}:8777',
+        'yolop': f'http://{host}:9777'
     }
     
     return PerceptionAggregator(service_config, timeout=timeout)

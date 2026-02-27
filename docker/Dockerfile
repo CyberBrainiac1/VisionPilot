@@ -19,7 +19,7 @@ RUN pip3 install --upgrade pip && \
     pip3 install -r requirements.txt
 
 # create model directories for volume mounts
-RUN mkdir -p /app/models/scnn_lane_detection && \
+RUN mkdir -p /app/models/yolop && \
     mkdir -p /app/models/object_detection && \
     mkdir -p /app/models/traffic_light && \
     mkdir -p /app/models/traffic_sign

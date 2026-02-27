@@ -9,7 +9,7 @@ from src.perception.lane_detection.cv.thresholding import apply_thresholds_with_
 from src.perception.lane_detection.cv.perspective import debug_perspective_live, get_src_points, perspective_warp
 from src.perception.lane_detection.cv.lane_finder import get_histogram, sliding_window_search, detect_lane_type, fill_dashed_lane_gaps
 from src.perception.lane_detection.cv.multi_lane.multi_lane_finder import detect_multiple_lanes, find_lane_boundaries
-from src.perception.lane_detection.multi_lane.lane_selector import get_current_lane
+from perception.lane_detection.cv.multi_lane.lane_selector import get_current_lane
 from src.perception.lane_detection.metrics import calculate_curvature_and_deviation
 
 

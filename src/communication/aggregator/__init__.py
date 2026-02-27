@@ -1,6 +1,6 @@
 """Perception Aggregator Package"""
 
-from .aggregator import (
+from src.communication.aggregator import (
     PerceptionAggregator,
     AggregationResult,
     create_aggregator

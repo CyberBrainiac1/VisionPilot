@@ -31,7 +31,8 @@ class PerceptionClient:
                 'object_detection': 5777,
                 'traffic_light_detection': 6777,
                 'sign_detection': 7777,
-                'sign_classification': 8777
+                'sign_classification': 8777,
+                'yolop': 9777
             }
         
         service_config = {
@@ -177,6 +178,79 @@ class PerceptionClient:
             return []
         
         return sign_cls_result.get('classifications', [])
+    
+    def extract_cv_lane_detection(self, result):
+        """
+        Extract CV-based lane detection results.
+        
+        Args:
+            result: AggregationResult from process_frame
+        
+        Returns:
+            Dict with lane metrics and result image or fallback values
+        """
+        cv_lane_result = result.results.get('cv_lane_detection')
+        
+        if cv_lane_result is None:
+            logger.warning("CV lane detection service returned None")
+            return {
+                'confidence': 0.0,
+                'deviation': 0.0,
+                'lane_center': 0.0,
+                'vehicle_center': 0.0,
+                'left_curverad': 0.0,
+                'right_curverad': 0.0,
+                'lane_width': 0.0,
+                'detected_num_lanes': 0,
+                'result_image': None
+            }
+        
+        # Extract metrics from service response
+        metrics = cv_lane_result.get('metrics', {})
+        result_data = {
+            'confidence': float(metrics.get('confidence', 0.0)),
+            'deviation': float(metrics.get('deviation', 0.0)),
+            'lane_center': float(metrics.get('lane_center', 0.0)),
+            'vehicle_center': float(metrics.get('vehicle_center', 0.0)),
+            'left_curverad': metrics.get('left_curverad'),
+            'right_curverad': metrics.get('right_curverad'),
+            'lane_width': metrics.get('lane_width'),
+            'detected_num_lanes': int(metrics.get('detected_num_lanes', 0)),
+            'result_image': None
+        }
+        
+        # Try to get result image if available
+        if 'result_image' in cv_lane_result:
+            try:
+                result_data['result_image'] = np.array(cv_lane_result['result_image'], dtype=np.uint8)
+            except Exception as e:
+                logger.warning(f"Failed to parse CV lane detection result image: {e}")
+        
+        return result_data
+    
+    def extract_yolop(self, result):
+        """
+        Extract YOLOP results (detections + segmentations).
+        
+        Returns:
+            Dict with detections, drivable_area, lane_lines
+        """
+        yolop_result = result.results.get('yolop')
+        
+        if yolop_result is None:
+            logger.warning("YOLOP service returned None")
+            return {
+                'detections': [],
+                'drivable_area': None,
+                'lane_lines': None
+            }
+        
+        return {
+            'detections': yolop_result.get('detections', []),
+            'drivable_area': np.array(yolop_result.get('drivable_area', [])),
+            'lane_lines': np.array(yolop_result.get('lane_lines', [])),
+            'detection_count': yolop_result.get('detection_count', 0)
+        }
     
     def shutdown(self):
         """Shutdown the aggregator gracefully."""

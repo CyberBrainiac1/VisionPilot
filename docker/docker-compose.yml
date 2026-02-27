@@ -13,36 +13,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    
-  lane_detection:
-    build:
-      context: ..
-      dockerfile: docker/dockerfiles/lane_detection/Dockerfile
-    container_name: "visionpilot_lane_detection"
-    environment:
-      - MODEL_PATH=/models/scnn_lane_detection/scnn.pth
-      - PYTHONUNBUFFERED=1
-    ports:
-      - "4777:4777"
-    volumes:
-      - ../models/scnn_lane_detection:/models/scnn_lane_detection:ro
-    networks:
-      - visionpilot_net
-    depends_on:
-      redis:
-        condition: service_healthy
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4777/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
   
   object_detection:
     build:
@@ -160,6 +130,36 @@ services:
               capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  yolop:
+    build:
+      context: ..
+      dockerfile: docker/dockerfiles/yolop/Dockerfile
+    container_name: "visionpilot_yolop"
+    environment:
+      - MODEL_PATH=/models/yolop/yolop.pt
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "9777:9777"
+    volumes:
+      - ../models/yolop:/models/yolop:ro
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9777/health"]
       interval: 10s
       timeout: 5s
       retries: 3
