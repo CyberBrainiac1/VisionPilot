@@ -1,3 +1,5 @@
+> **NOTICE:** VisionPilot is undergoing a major transition from **BeamNG.tech** to **CARLA simulator**. Core functionality is being ported.
+
 <p align="center">
   <img src="media/bannernobg.png" alt="VisionPilot Banner" height="200" />
 </p>
