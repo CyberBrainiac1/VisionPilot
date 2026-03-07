@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import base64
 from flask import Flask, request, jsonify
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -42,6 +43,7 @@ def process_classification():
         "frame_id": "frame_123"
     }
     """
+    data = None
     try:
         data = request.get_json()
         
@@ -66,11 +68,14 @@ def process_classification():
         formatted_classifications = []
         if classifications:
             for cls in classifications:
+                bbox = cls.get('bbox', [0, 0, 0, 0])
+                # Convert bbox to Python ints (handle numpy int64)
+                bbox_list = [int(x) for x in bbox]
                 formatted_classifications.append({
-                    'sign_type': cls.get('classification', 'unknown'),
+                    'sign_type': str(cls.get('classification', 'unknown')),
                     'confidence': float(cls.get('classification_confidence', 0.0)),
                     'class_index': int(cls.get('class_index', -1)),
-                    'bbox': list(cls.get('bbox', [0, 0, 0, 0]))
+                    'bbox': bbox_list
                 })
         
         response = {
@@ -87,7 +92,8 @@ def process_classification():
         print(f"[Sign Classification Service] Error processing frame: {e}")
         import traceback
         traceback.print_exc()
-        return {'status': 'error', 'message': str(e), 'frame_id': data.get('frame_id', 'unknown')}, 500
+        frame_id = data.get('frame_id', 'unknown') if data else 'unknown'
+        return {'status': 'error', 'message': str(e), 'frame_id': frame_id}, 500
 
 @app.route('/health', methods=['GET'])
 def health():

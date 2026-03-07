@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+import base64
 from flask import Flask, request, jsonify
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -42,13 +43,15 @@ def process_detection():
         "frame_id": "frame_123"
     }
     """
+    data = None
     try:
         data = request.get_json()
         
-        # decode frame from request
-        frame_data = np.array(data['frame'], dtype=np.uint8)
+        # decode frame from request (base64 encoded)
+        frame_b64 = data['frame']
+        frame_bytes = base64.b64decode(frame_b64)
         frame_shape = data.get('frame_shape', [1080, 1920, 3])
-        frame = frame_data.reshape(frame_shape)
+        frame = np.frombuffer(frame_bytes, dtype=np.uint8).reshape(frame_shape)
         
         confidence_threshold = data.get('confidence_threshold', 0.4)
         frame_id = data.get('frame_id', 'unknown')
@@ -66,10 +69,13 @@ def process_detection():
         formatted_detections = []
         if detections:
             for det in detections:
+                bbox = det.get('bbox', [0, 0, 0, 0])
+                # Convert bbox to Python ints (handle numpy int64)
+                bbox_list = [int(x) for x in bbox]
                 formatted_detections.append({
-                    'class': det.get('class', 'unknown'),
+                    'class': str(det.get('class', 'unknown')),
                     'confidence': float(det.get('confidence', 0.0)),
-                    'bbox': det.get('bbox', [0, 0, 0, 0])
+                    'bbox': bbox_list
                 })
         
         response = {
@@ -86,7 +92,8 @@ def process_detection():
         print(f"[Object Detection Service] Error processing frame: {e}")
         import traceback
         traceback.print_exc()
-        return {'status': 'error', 'message': str(e), 'frame_id': data.get('frame_id', 'unknown')}, 500
+        frame_id = data.get('frame_id', 'unknown') if data else 'unknown'
+        return {'status': 'error', 'message': str(e), 'frame_id': frame_id}, 500
 
 @app.route('/health', methods=['GET'])
 def health():
