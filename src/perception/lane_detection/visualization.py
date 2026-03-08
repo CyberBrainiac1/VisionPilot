@@ -2,63 +2,6 @@ import numpy as np
 import cv2
 
 
-def draw_lane_overlay(original_image, warped_image, Minv, left_fitx, right_fitx, ploty, deviation):
-    """
-    Draw the detected lane area and lane lines on the original image.
-    Lane lines are colored based on vehicle deviation from lane center.
-    
-    Args:
-        Original_image: The original undistorted image
-        warped_image: The warped binary image
-        Minv: Inverse perspective transform matrix
-        left_fitx: X coordinates for left lane line
-        right_fitx: X coordinates for right lane line
-        ploty: Y coordinates for lane fitting
-        deviation: Vehicle deviation from lane center in meters
-    Returns:
-        Resulting image with lane overlay
-    """
-    
-    if len(left_fitx) == 0 or len(right_fitx) == 0 or len(ploty) == 0:
-        return original_image
-    
-
-    try:
-        warp_zero = np.zeros_like(warped_image).astype(np.uint8)
-        color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
-
-        pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
-        pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
-        pts = np.hstack((pts_left, pts_right))
-        
-        cv2.fillPoly(color_warp, np.int_([pts]), (0, 255, 0))
-
-        if deviation is not None and deviation > 0 and deviation > 0.1 and deviation < 0.3:
-            left_color = (0, 255, 255)
-            right_color = (0, 0, 255)
-        elif deviation is not None and deviation < 0 and deviation < -0.1 and deviation > -0.3:
-            left_color = (0, 0, 255)
-            right_color = (0, 255, 255)
-        else:
-            left_color = (0, 255, 255)
-            right_color = (0, 255, 255)
-
-        cv2.polylines(color_warp, [pts_left.astype(np.int32)], isClosed=False, color=left_color, thickness=4)
-
-        cv2.polylines(color_warp, [pts_right.astype(np.int32)], isClosed=False, color=right_color, thickness=4)
-
-        center_fitx = (left_fitx + right_fitx) / 2
-        center_pts = np.array([np.transpose(np.vstack([center_fitx, ploty]))]).astype(np.int32)
-        cv2.polylines(color_warp, center_pts, isClosed=False, color=(255, 0, 0), thickness=5)
-
-        newwarp = cv2.warpPerspective(color_warp, Minv, (original_image.shape[1], original_image.shape[0])) 
-        result = cv2.addWeighted(original_image, 1, newwarp, 0.25, 0)
-        
-        return result
-    except Exception as e:
-        print(f"Error in draw_lane_overlay: {e}")
-        return original_image
-
 
 def add_text_overlay(image, left_curverad, right_curverad, deviation, avg_brightness, speed, confidence):
     """
@@ -94,6 +37,73 @@ def add_text_overlay(image, left_curverad, right_curverad, deviation, avg_bright
 
     
     return image
+
+def draw_multi_lane_overlay(original_image, binary_warped, Minv, all_lanes, current_lane_data):
+    """
+    Draw all detected lanes on the original image with labels.
+    
+    Args:
+        original_image: Original image to draw on
+        binary_warped: Warped binary image (for rotation info)
+        Minv: Inverse perspective transform matrix
+        all_lanes: Dictionary of all detected lanes with classification (left, center, right)
+        current_lane_data: Current lane info for labeling
+    
+    Returns:
+        Image with all lanes drawn and labeled
+    """
+    result = original_image.copy()
+    
+    lane_colors = {
+        'left': (255, 100, 0),
+        'center': (0, 255, 0),
+        'right': (0, 100, 255)
+    }
+    
+    try:
+        for lane_class, lane_dict in all_lanes.items():
+            lane = lane_dict['lane_data']
+            ploty_lane = lane['ploty']
+            left_fitx_lane = lane['left_fitx']
+            right_fitx_lane = lane['right_fitx']
+            color = lane_colors.get(lane_class, (100, 100, 100))
+            
+            try:
+                warped_h, warped_w = binary_warped.shape
+                
+                left_x_orig = ploty_lane
+                left_y_orig = warped_w - left_fitx_lane
+                right_x_orig = ploty_lane
+                right_y_orig = warped_w - right_fitx_lane
+                
+                left_pts_unrot = np.array([np.transpose(np.vstack([left_x_orig, left_y_orig]))], dtype=np.float32)
+                right_pts_unrot = np.array([np.transpose(np.vstack([right_x_orig, right_y_orig]))], dtype=np.float32)
+                
+                left_pts_orig = cv2.perspectiveTransform(left_pts_unrot, Minv)
+                right_pts_orig = cv2.perspectiveTransform(right_pts_unrot, Minv)
+                
+                cv2.polylines(result, np.int32([left_pts_orig]), False, color, 3)
+                cv2.polylines(result, np.int32([right_pts_orig]), False, color, 3)
+                
+                lane_bottom_x = int((left_pts_orig[-1][0][0] + right_pts_orig[-1][0][0]) / 2)
+                lane_bottom_y = int((left_pts_orig[-1][0][1] + right_pts_orig[-1][0][1]) / 2)
+                
+                label_text = f"{lane_class.upper()}"
+                if current_lane_data and lane_class == current_lane_data['lane_class']:
+                    label_text += " (CURRENT)"
+                
+                cv2.putText(result, label_text, (lane_bottom_x - 40, lane_bottom_y + 30),
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                
+            except Exception as label_err:
+                print(f"Lane label error for {lane_class}: {label_err}")
+        
+        return result
+        
+    except Exception as e:
+        print(f"Error in draw_multi_lane_overlay: {e}")
+        return original_image
+
 
 def create_mask_overlay(img, mask, alpha=0.4, color=(0, 255, 0)):
     """

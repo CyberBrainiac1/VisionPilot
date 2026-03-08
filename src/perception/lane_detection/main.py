@@ -5,9 +5,9 @@ from src.perception.lane_detection.cv.thresholding import apply_thresholds_with_
 from src.perception.lane_detection.cv.perspective import debug_perspective_live, get_src_points, perspective_warp
 from src.perception.lane_detection.cv.lane_finder import get_histogram, detect_lane_type, fill_dashed_lane_gaps
 from src.perception.lane_detection.metrics import calculate_curvature_and_deviation
-from src.perception.lane_detection.visualization import draw_lane_overlay, add_text_overlay, create_mask_overlay
+from src.perception.lane_detection.visualization import add_text_overlay, create_mask_overlay, draw_multi_lane_overlay
 
-from src.perception.lane_detection.cv.multi_lane.multi_lane_finder import detect_multiple_lanes
+from src.perception.lane_detection.cv.multi_lane.multi_lane_finder import detect_multiple_lanes, find_lane_boundaries
 from src.perception.lane_detection.cv.multi_lane.lane_selector import get_current_lane
 
 from src.perception.lane_detection.confidence import compute_confidence_cv
@@ -56,6 +56,16 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
             warped_display = np.dstack((binary_warped, binary_warped, binary_warped)) * 255
             cv2.imshow('Warped Binary CV', warped_display)
 
+        histogram = get_histogram(binary_warped)
+        
+        if debug_display:
+            hist_display = np.zeros((256, histogram.shape[0], 3), dtype=np.uint8)
+            for i, val in enumerate(histogram):
+                height = int(val / histogram.max() * 256) if histogram.max() > 0 else 0
+                cv2.line(hist_display, (i, 256), (i, 256 - height), (255, 255, 0), 1)
+            cv2.imshow('Histogram', hist_display)
+            cv2.waitKey(1)
+
         lanes = None
         detected_num_lanes = num_lanes
 
@@ -87,7 +97,7 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
         current_lane_data = lane_info['current_lane']
         all_lanes = lane_info['classified_lanes']
 
-        # extract left and right fitx
+        # Extract left and right fitx
         # Use current lane or fallback to first lane
         if current_lane_data:
             lane_data = current_lane_data['lane_data']
@@ -107,17 +117,17 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
                 }
                 return result, metrics, 0.0
         
-        # extract data
         ploty = lane_data['ploty']
         left_fitx = lane_data['left_fitx']
         right_fitx = lane_data['right_fitx']
         left_fit = lane_data['left_fit']
         right_fit = lane_data['right_fit']
         
-        # keep drawing method
-        result = draw_lane_overlay(img, binary_warped, Minv, left_fitx, right_fitx, ploty, deviation=0)
+        result = draw_multi_lane_overlay(img, binary_warped, Minv, all_lanes, current_lane_data)
         
-        # Calculate metrics
+        if debug_display:
+            cv2.imshow('Multi-Lane Detection', result)
+        
         current_fit = (left_fit, right_fit)
         metrics_result = calculate_curvature_and_deviation(ploty, left_fitx, right_fitx, binary_warped, original_image_width=img.shape[1])
 
@@ -138,6 +148,36 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
 
         result = add_text_overlay(result, left_curverad, right_curverad, deviation, avg_brightness, speed, confidence=confidence)
         
+        all_lane_metrics = []
+        for lane_idx, lane in enumerate(lanes):
+            metrics_result_lane = calculate_curvature_and_deviation(
+                lane['ploty'], 
+                lane['left_fitx'], 
+                lane['right_fitx'], 
+                binary_warped,
+                original_image_width=img.shape[1]
+            )
+            
+            if metrics_result_lane is not None:
+                if len(metrics_result_lane) == 6:
+                    left_curv, right_curv, dev, l_center, v_center, l_width = metrics_result_lane
+                else:
+                    left_curv, right_curv, dev, l_center, v_center = metrics_result_lane[:5]
+                    l_width = None
+            else:
+                left_curv, right_curv, dev, l_center, v_center, l_width = None, None, None, None, None, None
+            
+            lane_metrics = {
+                'lane_id': lane_idx,
+                'left_curverad': left_curv,
+                'right_curverad': right_curv,
+                'deviation': dev,
+                'lane_center': l_center,
+                'vehicle_center': v_center,
+                'lane_width': l_width,
+            }
+            all_lane_metrics.append(lane_metrics)
+        
         metrics = {
             'left_curverad': left_curverad,
             'right_curverad': right_curverad,
@@ -148,6 +188,7 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
             'confidence': confidence,
             'current_lane': current_lane_data,
             'all_lanes': all_lanes,
+            'all_lane_metrics': all_lane_metrics,
             'detected_num_lanes': detected_num_lanes
         }
         
