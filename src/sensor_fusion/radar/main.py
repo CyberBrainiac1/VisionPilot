@@ -51,7 +51,7 @@ def calculate_aeb(converted_points, speed_kph, radar_cfg):
         ego_speed_mps = speed_kph / 3.6
         relative_velocity = ego_speed_mps - doppler_vel
 
-        ttc = min_dist / relative_velocity
+        ttc = min_dist / relative_velocity if relative_velocity > 0 else float('inf')
         return {
             'ttc': ttc,
             'closest_distance': min_dist,

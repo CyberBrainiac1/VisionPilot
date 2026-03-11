@@ -30,7 +30,7 @@ def get_current_lane(lanes, vehicle_center=None, image_width=None):
     """
     if vehicle_center is None:
         if image_width is None:
-            raise ValueError("Either vehicle_center or image_width must be provided")
+            raise ValueError("Both vehicle_center and image_width are None; at least one must be provided")
         vehicle_center = image_width / 2
     
     current_lane = None

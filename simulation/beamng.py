@@ -343,8 +343,8 @@ def draw_combined_detections(img, sign_detections, vehicle_detections, tl_detect
     # Draw Signs (Blue)
     for det in sign_detections:
         x1, y1, x2, y2 = det['bbox']
-        classification = det.get('classification', 'Sign')
-        conf = det.get('classification_confidence', 0.0)
+        classification = det.get('detection_class', 'Sign')
+        conf = det.get('detection_confidence', 0.0)
         label = f"{classification} {conf:.2f}"
         cv2.rectangle(result_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
         cv2.putText(result_img, label, (int(x1), int(y1)-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
@@ -359,7 +359,7 @@ def draw_combined_detections(img, sign_detections, vehicle_detections, tl_detect
     # Draw Traffic Lights (Orange)
     for det in tl_detections:
         x1, y1, x2, y2 = det['bbox']
-        label = f"{det['class']} {det['confidence']:.2f}"
+        label = f"{det.get('state', 'Traffic Light')} {det.get('confidence', 0.0):.2f}"
         cv2.rectangle(result_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 165, 255), 2) 
         cv2.putText(result_img, label, (int(x1), int(y1)-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
         
@@ -751,7 +751,7 @@ def main():
                         speed_kph=speed_kph,
                         steering=steering,
                         throttle=throttle,
-                        brake=0.0
+                        brake=brake
                     )
             except Exception as control_send_e:
                 print(f"Error sending vehicle control to Foxglove: {control_send_e}")
@@ -842,15 +842,15 @@ def main():
                 for sign_det in sign_detections:
                     all_detections.append({
                         'bbox': sign_det['bbox'],
-                        'class': sign_det.get('classification', 'Sign'),
-                        'confidence': sign_det.get('classification_confidence', 0.0),
+                        'class': sign_det.get('detection_class', 'Sign'),
+                        'confidence': sign_det.get('detection_confidence', 0.0),
                         'type': 'sign'
                     })
                 
                 for tl_det in traffic_light_detections:
                     all_detections.append({
                         'bbox': tl_det['bbox'],
-                        'class': tl_det.get('class', 'Traffic Light'),
+                        'class': tl_det.get('state', 'Traffic Light'),
                         'confidence': tl_det.get('confidence', 0.0),
                         'type': 'traffic_light'
                     })
