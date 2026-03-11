@@ -10,7 +10,7 @@ from src.communication.aggregator import PerceptionAggregator
 
 def test_health_check():
     service_config = {
-        'lane_detection': 'http://localhost:4777',
+        'cv_lane_detection': 'http://localhost:4777',
         'object_detection': 'http://localhost:5777',
         'traffic_light_detection': 'http://localhost:6777',
         'sign_detection': 'http://localhost:7777',
@@ -30,7 +30,7 @@ def test_health_check():
 
 def test_process_frame():
     service_config = {
-        'lane_detection': 'http://localhost:4777',
+        'cv_lane_detection': 'http://localhost:4777',
         'object_detection': 'http://localhost:5777',
         'traffic_light_detection': 'http://localhost:6777',
         'sign_detection': 'http://localhost:7777',
@@ -62,7 +62,7 @@ def test_process_frame():
 
 def test_error_handling():
     service_config = {
-        'lane_detection': 'http://localhost:4777',
+        'cv_lane_detection': 'http://localhost:4777',
         'object_detection': 'http://localhost:9999',
         'traffic_light_detection': 'http://localhost:6777',
         'sign_detection': 'http://localhost:7777',

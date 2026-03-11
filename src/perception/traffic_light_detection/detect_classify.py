@@ -53,7 +53,7 @@ def detect_traffic_lights(frame):
             
             detections.append({
                 'bbox': (x1, y1, x2, y2),
-                'class': class_name,
+                'state': class_name,
                 'confidence': confidence,
                 'class_id': class_id
             })

@@ -508,8 +508,19 @@ def main():
             except Exception as e:
                 print(f"Simulation step error: {e}")
 
-            images = camera.stream()
-            img = np.array(images['colour'])
+            try:
+                images = camera.stream()
+                if images is None or 'colour' not in images:
+                    print("Warning: Camera stream returned None or missing 'colour' key, skipping frame")
+                    frame_count += 1
+                    step_i += 1
+                    continue
+                img = np.array(images['colour'])
+            except Exception as cam_e:
+                print(f"Camera stream error: {cam_e}")
+                frame_count += 1
+                step_i += 1
+                continue
 
             # Send camera image to Foxglove
             try:

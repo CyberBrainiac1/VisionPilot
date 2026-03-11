@@ -7,6 +7,9 @@ def process_frame(radar_front_sensor, radar_cfg, speed_kph):
     Returns raw radar data for decision logic in main loop.
     """
     radar_points = radar_front_sensor.poll()
+    if radar_points is None:
+        print("Warning: Radar poll returned None")
+        radar_points = {}
     filtered_points = filter_radar(radar_points, radar_cfg)
 
     converted_points = convert_to_xyz(filtered_points)
@@ -93,10 +96,14 @@ def convert_to_xyz(points):
 
 def filter_radar(radar_data, radar_cfg):
 
+    if radar_data is None:
+        print("Warning: radar_data is None in filter_radar")
+        return []
+
     try:
         raw_points = radar_data['point_cloud']
-    except KeyError:
-        print("radar missing 'point_cloud' key")
+    except (KeyError, TypeError):
+        print("radar missing 'point_cloud' key or radar_data is not dict-like")
         raw_points = []
 
     filtered_points = []
