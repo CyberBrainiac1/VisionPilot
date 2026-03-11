@@ -1,29 +1,51 @@
-# VisionPilot – Windows-compatible requirements
+# VisionPilot - Windows-compatible requirements
 #
-# Differences from requirements.txt:
-#   - 'carla' is removed: the CARLA Python client is NOT on PyPI.
-#     Install it manually from a CARLA release wheel:
-#       pip install <CARLA_ROOT>/PythonAPI/carla/dist/carla-*.whl
-#     See docs/WINDOWS_SETUP.md for full instructions.
-#   - tensorflow pin kept as-is; TF 2.19 ships Windows wheels via PyPI.
-#   - beamngpy is NOT listed here – install it only when you have a
-#     BeamNG.tech licence (pip install beamngpy).
+# DECISIONS:
+#   Python 3.11 is the recommended version. It has the best Windows wheel
+#   coverage for TensorFlow 2.19, PyTorch, and OpenCV.
+#
+#   numpy<2.0 is REQUIRED. TensorFlow 2.19 and older OpenCV wheels
+#   break silently on numpy 2.x. Do not relax this pin.
+#
+#   carla is excluded. The CARLA Python client is NOT on PyPI.
+#   CARLA integration is also not yet implemented (no simulation/run_carla.py).
+#   Install manually if/when needed:
+#       pip install <CARLA_ROOT>\PythonAPI\carla\dist\carla-*.whl
+#
+#   beamngpy is excluded. Install it only when you have a BeamNG.tech
+#   licence and want to run simulation:
+#       pip install beamngpy
+#
+# This file is the ONLY requirements file you need for a working Windows install.
 
+# --- Deep learning ---
 tensorflow==2.19.0
 keras==3.10.0
-matplotlib==3.7.3
-ipython
+
+# --- Machine vision ---
 numpy>=1.22.4,<2.0
-pandas
-scikit-learn
-Pillow
-opencv-python
-tqdm
+opencv-python>=4.8.0,<5.0
+
+# --- Web / services ---
 flask==3.0.0
 requests==2.31.0
-flask-cors
-ultralytics>=8.0.28
-pyyaml
-scipy
-torch
-torchvision
+flask-cors==4.0.0
+
+# --- Detection models ---
+ultralytics>=8.0.28,<9.0
+
+# --- PyTorch (CPU fallback; GPU users: install CUDA build separately) ---
+torch>=2.0.0
+torchvision>=0.15.0
+
+# --- Data / utilities ---
+matplotlib==3.7.3
+pandas>=1.5.0,<3.0
+scikit-learn>=1.2.0
+Pillow>=9.0.0
+scipy>=1.10.0
+tqdm>=4.64.0
+pyyaml>=6.0
+
+# --- Interactive (optional, for notebooks) ---
+ipython

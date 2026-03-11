@@ -1,173 +1,188 @@
-# VisionPilot – Windows Run Guide
+# VisionPilot - Windows Run Guide
 
 ## Shortest Path to First Successful Run
 
 ```powershell
-# 1. Clone
+# 1. Allow PowerShell scripts (one-time)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 2. Clone and enter
 git clone https://github.com/CyberBrainiac1/VisionPilot.git
 cd VisionPilot
 
-# 2. Setup (one-time)
+# 3. Setup (creates .venv, installs deps, verifies)
 .\setup_windows.ps1
 
-# 3. Start perception services
+# 4. Start CV lane detection (guaranteed working, no model files needed)
 .\run_windows.ps1
 ```
 
-Expected output:
+### Expected output
 
 ```
 ==========================================
-  VisionPilot – Windows Launcher
+  VisionPilot - Windows Launcher
   Mode: services
 ==========================================
 
-[VisionPilot] Virtual environment activated (.venv)
-[VisionPilot] Running environment verification...
-  [OK]  Python 3.11.x
+[VisionPilot] Virtual environment activated
+[VisionPilot] Checking environment...
+  [OK]  Python 3.11.x (recommended)
   [OK]  numpy
-  [OK]  opencv-python
-  [OK]  flask
   ...
+  All critical checks passed.
 
-[VisionPilot] Starting perception microservices...
+[VisionPilot] Starting services...
 
-  Starting cv_lane_detection (port 4777)... PID 12345
-  Starting object_detection (port 5777)... PID 12346
-  ...
+  cv_lane_detection  :4777  OpenCV lane detection - no model file required  [PID 1234]
 
-[VisionPilot] Waiting 5s for services to initialise...
+[VisionPilot] Waiting for services to initialise...
 
-[VisionPilot] Checking service health...
+Health check:
 
-  [OK]  cv_lane_detection  http://localhost:4777
-  [!!]  object_detection   http://localhost:5777 – not responding
-  ...
+  [OK]  cv_lane_detection   http://localhost:4777
 
-Services are running in the background.
-Press Enter to stop all services.
+CV lane detection is live at http://localhost:4777
+
+  GET  http://localhost:4777/health   -- health check
+  POST http://localhost:4777/process  -- process a frame
+
+To start all 6 services: .\run_windows.ps1 -Mode all-services
+
+Press Enter to stop.
 ```
-
-> **Note:** Services requiring model weights (object_detection, traffic_light,
-> sign_detection, sign_classification, yolop) will show `[!!]` until the
-> corresponding `.pt` / `.h5` files are placed in `models/`.
-> CV lane detection (port 4777) is always healthy.
 
 ---
 
 ## Command Reference
 
-| Command | Description |
-|---------|-------------|
-| `.\setup_windows.ps1` | Create .venv, install deps, verify |
-| `.\run_windows.ps1` | Start services + health check |
-| `.\run_windows.ps1 -Mode beamng` | Start services + BeamNG simulation |
-| `.\run_windows.ps1 -Mode verify` | Environment check only |
+| Command | What it does |
+|---------|--------------|
+| `.\run_windows.ps1` | Start CV lane detection only (always works) |
+| `.\run_windows.ps1 -Mode all-services` | Start all 6 services (needs model files for most) |
+| `.\run_windows.ps1 -Mode beamng` | Start all services + BeamNG simulation |
+| `.\run_windows.ps1 -Mode verify` | Environment check only, nothing started |
 | `.\run_windows.ps1 -SkipVerify` | Skip env check at startup |
-| `.\scripts\start_services.ps1` | Start services only (no launcher overhead) |
+| `.\setup_windows.ps1` | Create/repair .venv, install deps |
+| `.\setup_windows.ps1 -WithBeamNG` | Also installs beamngpy |
 | `.\diagnose_windows.ps1` | Full diagnostics report |
-| `python verify_env.py` | Python-level checks |
-| `.\scripts\start_simulation.ps1` | BeamNG simulation (needs `BEAMNG_HOME`) |
+| `python verify_env.py` | Python-level environment checks |
+| `.\scripts\start_services.ps1` | Start all services directly (no launcher) |
+| `.\scripts\start_simulation.ps1` | BeamNG simulation (needs BEAMNG_HOME) |
+
+---
+
+## Running with All Services
+
+Requires model weight files in `models/`. Services without weights exit immediately.
+
+```powershell
+.\run_windows.ps1 -Mode all-services
+```
+
+Output with no model files:
+
+```
+Model file status:
+  [!!] object_detection - model not found, service exits at startup
+  [!!] traffic_light_detection - model not found, service exits at startup
+  ...
+
+Health check:
+  [OK]  cv_lane_detection   http://localhost:4777
+  [!!]  object_detection    http://localhost:5777  - not responding
+  ...
+```
+
+---
+
+## Running with BeamNG
+
+Requirements: BeamNG.tech licence, BeamNG installed.
+
+```powershell
+# Set your BeamNG install path
+$env:BEAMNG_HOME = "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
+
+# Start all services + BeamNG simulation loop
+.\run_windows.ps1 -Mode beamng
+```
+
+The `BEAMNG_HOME` env var always takes priority over `config/beamng_sim.yaml`.
 
 ---
 
 ## Running Individual Services
 
-Each service can be run independently for testing:
-
 ```powershell
-# Activate venv first
 .\.venv\Scripts\Activate.ps1
 
 # CV lane detection (no model needed)
 python services\cv_lane_detection_service.py
 
-# Object detection (needs model)
+# Object detection (needs .pt)
 $env:MODEL_PATH = "models\object_detection\object_detection.pt"
 python services\object_detection_service.py
 ```
 
-Test a service endpoint:
+Test with curl or PowerShell:
+
 ```powershell
 # Health check
 Invoke-RestMethod http://localhost:4777/health
 
-# Process a frame (example with PowerShell)
-$frame = [System.IO.File]::ReadAllBytes("path\to\image.jpg")
-$b64 = [Convert]::ToBase64String($frame)
-$body = @{ frame = $b64; frame_shape = @(1080, 1920, 3) } | ConvertTo-Json
-Invoke-RestMethod -Method POST -Uri http://localhost:4777/process -Body $body -ContentType "application/json"
-```
-
----
-
-## BeamNG Simulation
-
-Requirements: BeamNG.tech licence, BeamNG.tech installed.
-
-```powershell
-# Set BeamNG home
-$env:BEAMNG_HOME = "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
-
-# Start services + simulation
-.\run_windows.ps1 -Mode beamng
-
-# or just the simulation (services must already be running)
-.\scripts\start_simulation.ps1
+# Send a frame (from file)
+$img = [Convert]::ToBase64String([IO.File]::ReadAllBytes("path\to\image.jpg"))
+$body = @{ frame = $img; frame_shape = @(1080, 1920, 3) } | ConvertTo-Json
+Invoke-RestMethod -Method POST -Uri http://localhost:4777/process `
+    -Body $body -ContentType "application/json"
 ```
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Likely Cause | Fix |
-|---------|-------------|-----|
-| `setup_windows.ps1` blocked | Execution policy | `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
-| `carla` install fails | Not on PyPI | Use `requirements-windows.txt` (default) |
-| Services fail with `MODEL_PATH` error | Missing model weights | Add `.pt`/`.h5` files to `models/` |
-| `verify_env.py` fails on `config.config` | Config `__init__` missing | Fixed in this branch |
-| `ModuleNotFoundError: No module named 'src'` | Missing `__init__.py` | Fixed in this branch |
-| Aggregator sends to services, all return 500 | Frame encoding mismatch | Fixed in this branch (now base64) |
-| `beamng.py` can't find YAML configs | Wrong config path | Fixed in this branch |
-| Port already in use | Old service process | `Get-Process python | Stop-Process` |
+| Symptom | Fix |
+|---------|-----|
+| Script blocked | `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` |
+| `.venv not found` | `.\setup_windows.ps1` |
+| `carla` install fails | Use `requirements-windows.txt` (the default) |
+| Service shows `[!!]` | Missing model `.pt`/`.h5` in `models/` - check `logs\<name>.err` |
+| Port already in use | `Get-Process python \| Stop-Process` |
+| `BEAMNG_HOME` not recognized | `$env:BEAMNG_HOME = "C:\Path\To\BeamNG"` |
+| All services fail to start | `python verify_env.py` then `.\diagnose_windows.ps1` |
 
 ---
 
 ## Logs
 
-Service logs are written to `logs\`:
-
 ```
 logs\
-├── cv_lane_detection.log     stdout
-├── cv_lane_detection.err     stderr
-├── object_detection.log
-├── object_detection.err
-└── ...
+  cv_lane_detection.log    stdout
+  cv_lane_detection.err    stderr  <- check this on failure
+  object_detection.log
+  object_detection.err
+  ...
 ```
 
 ---
 
-## Architecture Diagram
+## Architecture
 
 ```
-[Windows PowerShell]
-       │
-       ├─ run_windows.ps1 / start_services.ps1
-       │
-       ▼
-[Python Flask Services]
-  cv_lane_detection    :4777
-  object_detection     :5777
-  traffic_light        :6777
-  sign_detection       :7777
-  sign_classification  :8777
-  yolop                :9777
-       │
-       ▼
-[PerceptionAggregator]  ←── called from BeamNG simulation loop
-  (concurrent HTTP, base64 frames)
-       │
-       ▼
-[simulation/beamng.py]  ←── requires BeamNG.tech + licence
+run_windows.ps1  (default: Mode=services)
+      |
+      +-- always-on: cv_lane_detection (4777)
+      |
+      +-- needs-model: object_detection (5777)
+      |                traffic_light (6777)
+      |                sign_detection (7777)
+      |                sign_classification (8777)
+      |                yolop (9777)
+      |
+      +-- beamng mode: simulation\beamng.py
+              |
+              +-- PerceptionAggregator (HTTP, base64 frames)
+                      |
+                      +-> POST /process to all services concurrently
 ```

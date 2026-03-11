@@ -13,26 +13,33 @@ import pathlib
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent
 
-# ── colour helpers ────────────────────────────────────────────────────────────
+# - color helpers -
 def _ok(msg):  print(f"  [OK]  {msg}")
 def _warn(msg): print(f"  [!!]  {msg}")
 def _fail(msg): print(f"  [XX]  {msg}")
 
-# ── checks ────────────────────────────────────────────────────────────────────
+# - checks -
 
 def check_python_version():
-    print("\n── Python version ──────────────────────────────────────")
+    print("\n-- Python version ------------------------------------------")
     ver = sys.version_info
     if ver >= (3, 9):
-        _ok(f"Python {ver.major}.{ver.minor}.{ver.micro}")
+        msg = f"Python {ver.major}.{ver.minor}.{ver.micro}"
+        if ver.minor == 11:
+            _ok(f"{msg} (recommended)")
+        elif ver.minor >= 12:
+            _ok(msg)
+            _warn("Python 3.11 is recommended for best Windows TensorFlow compatibility.")
+        else:
+            _ok(f"{msg} (3.11 recommended but this version is supported)")
     else:
-        _fail(f"Python {ver.major}.{ver.minor}.{ver.micro} - need >= 3.9")
+        _fail(f"Python {ver.major}.{ver.minor}.{ver.micro} - need >= 3.9 (3.11 recommended)")
         return False
     return True
 
 
 def check_platform():
-    print("\n── Platform ─────────────────────────────────────────────")
+    print("\n-- Platform ------------------------------------------------")
     plat = platform.system()
     _ok(f"{plat} {platform.release()} ({platform.machine()})")
     if plat != "Windows":
@@ -40,7 +47,7 @@ def check_platform():
 
 
 def check_required_imports():
-    print("\n── Required packages ────────────────────────────────────")
+    print("\n- Required packages -")
     required = [
         ("numpy",        "numpy"),
         ("cv2",          "opencv-python"),
@@ -67,7 +74,7 @@ def check_required_imports():
 
 
 def check_optional_imports():
-    print("\n── Optional / simulator packages ────────────────────────")
+    print("\n- Optional / simulator packages -")
     optional = [
         ("tensorflow",  "tensorflow",  "Deep-learning models (sign, traffic-light classification)"),
         ("torch",       "torch",       "PyTorch (YOLOP service)"),
@@ -85,7 +92,7 @@ def check_optional_imports():
 
 
 def check_config_files():
-    print("\n── Config files ─────────────────────────────────────────")
+    print("\n- Config files -")
     configs = [
         "config/beamng_sim.yaml",
         "config/control.yaml",
@@ -105,7 +112,7 @@ def check_config_files():
 
 
 def check_config_loads():
-    print("\n── Config YAML load ─────────────────────────────────────")
+    print("\n- Config YAML load -")
     try:
         import yaml
     except ImportError:
@@ -136,7 +143,7 @@ def check_config_loads():
 
 
 def check_entrypoints():
-    print("\n── Key entrypoints ──────────────────────────────────────")
+    print("\n- Key entrypoints -")
     entrypoints = [
         "simulation/beamng.py",
         "services/object_detection_service.py",
@@ -158,7 +165,7 @@ def check_entrypoints():
 
 
 def check_beamng_home():
-    print("\n── BeamNG home ──────────────────────────────────────────")
+    print("\n- BeamNG home -")
     home = os.environ.get("BEAMNG_HOME", "")
     if home and pathlib.Path(home).exists():
         _ok(f"BEAMNG_HOME = {home}")
@@ -170,7 +177,7 @@ def check_beamng_home():
 
 
 def check_model_files():
-    print("\n── Model files (optional) ───────────────────────────────")
+    print("\n- Model files (optional) -")
     models = [
         "models/object_detection/object_detection.pt",
         "models/traffic_light/traffic_light_detection.pt",
@@ -192,7 +199,7 @@ def check_model_files():
 
 def check_src_imports():
     """Try importing a few key internal modules."""
-    print("\n── Internal module imports ──────────────────────────────")
+    print("\n- Internal module imports -")
     sys.path.insert(0, str(PROJECT_ROOT))
 
     mods = [
@@ -217,7 +224,7 @@ def check_src_imports():
     return all_ok
 
 
-# ── main ─────────────────────────────────────────────────────────────────────
+# - main -
 
 def main():
     print("=" * 60)
@@ -239,7 +246,7 @@ def main():
     check_beamng_home()
     check_model_files()
 
-    print("\n── Summary ──────────────────────────────────────────────")
+    print("\n- Summary -")
     all_ok = True
     for name, ok in results.items():
         status = "PASS" if ok else "FAIL"

@@ -1,198 +1,160 @@
-# VisionPilot – Windows Setup Guide
+# VisionPilot - Windows Setup Guide
+
+## Decisions
+
+- **Python 3.11** is the standard. It has the best Windows wheel coverage for TF 2.19 + PyTorch + OpenCV.
+- **`requirements-windows.txt`** is the only file you need. It removes `carla` (not on PyPI) and pins `numpy<2.0`.
+- **BeamNG.tech** is the primary simulator. CARLA is not yet implemented (`simulation/run_carla.py` does not exist).
+- **Default entry point**: CV lane detection service (port 4777). It works without any model files on a clean install.
+
+---
 
 ## Prerequisites
 
+| Requirement | Version | Get it |
+|-------------|---------|--------|
+| Python | **3.11** (3.9-3.12 accepted) | [python.org/downloads](https://www.python.org/downloads/) - check "Add to PATH" |
+| Git | any | [git-scm.com](https://git-scm.com/) |
+| PowerShell | 5.1+ (PS 7 recommended) | Built-in on Windows 10/11 |
+
+Optional:
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Windows 10/11 | 64-bit | |
-| Python | 3.9 – 3.12 | [python.org](https://www.python.org/downloads/) – add to PATH |
-| Git | any | [git-scm.com](https://git-scm.com/) |
-| PowerShell | 5.1+ (or PS 7) | Windows built-in |
-| CUDA (optional) | 11.x / 12.x | For GPU acceleration |
-| Docker Desktop (optional) | 4.x | For containerised services |
-| BeamNG.tech (optional) | 0.37+ | Requires licence |
-| CARLA (optional) | 0.9.16 | Requires separate install |
+| CUDA | 11.x or 12.x | For GPU acceleration (services default to CPU) |
+| Docker Desktop | 4.x | For containerised services |
+| BeamNG.tech | 0.37+ | Requires paid licence |
+| CARLA | 0.9.16 | Not yet integrated |
 
-> **PowerShell execution policy**  
-> If scripts are blocked, run once as Administrator:  
-> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+> **First-time PowerShell setup:**
+> ```powershell
+> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+> ```
 
 ---
 
 ## Quick Setup
 
 ```powershell
-# Clone the repo
 git clone https://github.com/CyberBrainiac1/VisionPilot.git
 cd VisionPilot
-
-# One-shot setup (creates .venv, installs deps, verifies)
 .\setup_windows.ps1
 ```
 
-That's it for the base install. See sections below for simulator-specific steps.
+Done. Run `.\run_windows.ps1` to start the CV lane detection service.
 
 ---
 
-## What `setup_windows.ps1` does
+## What setup_windows.ps1 Does
 
-1. Verifies Python ≥ 3.9 is on `PATH`
-2. Creates `.venv` virtual environment (skips if already exists)
+1. Checks Python >= 3.9 (recommends 3.11)
+2. Creates `.venv` (skips if exists)
 3. Upgrades `pip`, `setuptools`, `wheel`
 4. Installs `requirements-windows.txt`
-5. Runs `verify_env.py` to confirm the installation
+5. Runs `verify_env.py`
+
+### With BeamNG support
+
+```powershell
+.\setup_windows.ps1 -WithBeamNG
+```
+
+This additionally runs `pip install beamngpy`.
 
 ---
 
-## Why `requirements-windows.txt` Exists
+## Why requirements-windows.txt Exists
 
-The default `requirements.txt` contains `carla`, which is **not available on
-PyPI**. Running `pip install -r requirements.txt` will fail on Windows.
+`requirements.txt` includes `carla` which is not on PyPI - `pip install -r requirements.txt` always fails on Windows.
 
-`requirements-windows.txt` removes `carla` and any other packages that need
-manual installation on Windows. Install optional simulator packages separately
-(see sections below).
+`requirements-windows.txt` fixes this:
+- Removes `carla` entirely (CARLA integration not yet implemented)
+- Removes `beamngpy` (install separately only with a BeamNG licence)
+- Pins `numpy>=1.22.4,<2.0` (numpy 2.x breaks TensorFlow 2.19)
+- Adds explicit `pyyaml` and `scipy` which `requirements.txt` omitted
 
 ---
 
-## Optional: BeamNG.tech Integration
+## Optional: BeamNG.tech
 
-1. Purchase / obtain a [BeamNG.tech](https://www.beamng.tech/) licence.
-2. Install BeamNG.tech (e.g. `C:\Users\<you>\BeamNG.tech.v0.37.6.0`).
+1. Purchase a [BeamNG.tech](https://www.beamng.tech/) licence.
+2. Install (e.g. `C:\Users\<you>\BeamNG.tech.v0.37.6.0`).
 3. Install the Python client:
    ```powershell
    pip install beamngpy
+   # or during setup:
+   .\setup_windows.ps1 -WithBeamNG
    ```
-4. Set the environment variable (add to your PowerShell profile for persistence):
+4. Set the environment variable:
    ```powershell
    $env:BEAMNG_HOME = "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
    ```
-5. Start the simulation:
+5. Start:
    ```powershell
-   .\scripts\start_simulation.ps1
-   # or
    .\run_windows.ps1 -Mode beamng
    ```
 
----
-
-## Optional: CARLA Integration
-
-> **Status:** CARLA integration is **in-progress**. The `simulation/run_carla.py`
-> entrypoint does not yet exist.
-
-1. Download CARLA 0.9.16 from the [CARLA releases page](https://github.com/carla-simulator/carla/releases).
-2. Install the Python client wheel:
-   ```powershell
-   pip install "<CARLA_ROOT>\PythonAPI\carla\dist\carla-0.9.16-cp3x-win_amd64.whl"
-   ```
-3. Launch CARLA:
-   ```powershell
-   & "C:\CARLA_0.9.16\CarlaUE4.exe"
-   ```
-4. When `simulation/run_carla.py` is complete, run:
-   ```powershell
-   python simulation\run_carla.py
-   ```
+The `BEAMNG_HOME` environment variable always overrides the path in `config/beamng_sim.yaml`.
 
 ---
 
-## Optional: Docker Services (recommended for production)
+## Optional: CARLA
 
-```powershell
-# From the docker\ directory
-cd docker
-docker compose up -d
+> **Status: not yet implemented.** `simulation/run_carla.py` does not exist.
 
-# Check health
-.\scripts\start_services.sh    # bash/WSL
-```
+CARLA integration is future work. If you want to prepare:
 
-Docker services require GPU passthrough (`nvidia` driver) for full
-performance. Without GPU they fall back to CPU.
+1. Download CARLA 0.9.16 from [GitHub releases](https://github.com/carla-simulator/carla/releases).
+2. Install the client wheel:
+   ```powershell
+   pip install "C:\CARLA_0.9.16\PythonAPI\carla\dist\carla-0.9.16-cp311-win_amd64.whl"
+   ```
+3. Wait for `simulation/run_carla.py` to be implemented.
 
 ---
 
 ## Model Weights
 
-Model weights are **not distributed** with the repository (too large, proprietary
-training data). Place them as follows:
+Model weights are not distributed with the repo. Place them in:
 
 ```
 models/
-├── object_detection/
-│   └── object_detection.pt
-├── traffic_light/
-│   └── traffic_light_detection.pt
-├── traffic_sign/
-│   ├── traffic_sign_detection.pt
-│   └── traffic_sign_classification.h5
-└── yolop/
-    └── yolop.pt
+  object_detection/object_detection.pt          (YOLOv11 - object detection)
+  traffic_light/traffic_light_detection.pt       (YOLOv11 - traffic lights)
+  traffic_sign/traffic_sign_detection.pt         (YOLOv11 - sign detection)
+  traffic_sign/traffic_sign_classification.h5    (CNN - sign classification)
+  yolop/yolop.pt                                 (YOLOP - unified perception)
 ```
 
-Services will start without model files but return errors on inference
-(`/process` endpoint). The CV lane detection service (port 4777) works
-without any model files.
+Services start without weights but return errors at inference time. CV lane
+detection (port 4777) works with zero model files.
 
 ---
 
 ## Common Issues
 
 ### `carla` install fails
-```
-ERROR: Could not find a version that satisfies the requirement carla
-```
-**Fix:** `carla` is not on PyPI. Use `requirements-windows.txt` (the default)
-or install the wheel from the CARLA release package.
+**Fix:** Use `requirements-windows.txt` (the default). Never use `requirements.txt` directly on Windows.
 
-### `beamngpy` import fails
-```
-ModuleNotFoundError: No module named 'beamngpy'
-```
-**Fix:** `pip install beamngpy` (only needed for simulation).
+### `beamngpy` not found
+**Fix:** `pip install beamngpy` - only needed for simulation, not for services.
 
-### PowerShell script blocked
-```
-.\setup_windows.ps1 : File ... cannot be loaded because running scripts is disabled
-```
+### PowerShell execution policy error
 **Fix:**
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### `tensorflow` install slow / fails on Python 3.12
-TensorFlow 2.19 supports Python 3.9–3.12. If install fails try:
+### `tensorflow` is slow to install / fails on 3.12
+TF 2.19 supports 3.9-3.12 but Python 3.11 has the most stable wheels.
 ```powershell
-pip install tensorflow==2.19.0 --no-binary :all:
+pip install tensorflow==2.19.0
 ```
 
-### OpenCV `cv2` import error (DLL load failed on Windows)
+### OpenCV `DLL load failed` on Windows
 ```powershell
-pip install opencv-python-headless   # headless version, more reliable on servers
+pip install opencv-python-headless   # more reliable on server/headless installs
 ```
 
-### Services not responding on health check
-- Check `logs\<service>.err` for startup errors.
-- Services that require `MODEL_PATH` will exit immediately if the file does
-  not exist.
-- Run `python verify_env.py` for a full diagnosis.
-
----
-
-## What Currently Works Without a Simulator
-
-| Feature | Works standalone? |
-|---------|-------------------|
-| CV lane detection service (port 4777) | ✅ Yes |
-| Object detection service (port 5777) | ✅ With model `.pt` |
-| Traffic light service (port 6777) | ✅ With model `.pt` |
-| Sign detection service (port 7777) | ✅ With model `.pt` |
-| Sign classification service (port 8777) | ✅ With model `.h5` |
-| YOLOP service (port 9777) | ✅ With model + YOLOP repo |
-| Aggregator (HTTP orchestration) | ✅ Yes |
-| Environment checks (`verify_env.py`) | ✅ Yes |
-| Diagnostics (`diagnose_windows.ps1`) | ✅ Yes |
-| BeamNG simulation loop | ❌ Needs BeamNG.tech |
-| CARLA simulation loop | ❌ Not yet implemented |
-| Foxglove visualisation | ❌ Needs Foxglove + BeamNG |
+### Services show `[!!]` in health check
+Services that need model weights exit immediately at startup without the `.pt`/`.h5` files.
+Check `logs\<service>.err` for details.

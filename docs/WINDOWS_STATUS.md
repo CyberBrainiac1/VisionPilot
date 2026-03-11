@@ -1,107 +1,115 @@
-# VisionPilot – Windows Codebase Status
+# VisionPilot - Windows Codebase Status
 
-> Internal developer note. Last updated: March 2026.
+> Internal developer note. Updated: March 2026.
 
 ---
 
-## Summary
+## Decisions Made
 
-VisionPilot is a modular Python project for autonomous driving research.
-It is in **active development** with its primary simulation backend being
-**BeamNG.tech** (fully integrated) while CARLA integration is in-progress
-(a placeholder `scripts/start_simulation.ps1` referenced a non-existent
-`simulation/run_carla.py` – fixed in this PR).
+| Decision | Choice | Why |
+|----------|--------|-----|
+| Primary simulator | **BeamNG.tech** | `simulation/beamng.py` is complete. No `run_carla.py` exists. |
+| Python version | **3.11** (min 3.9) | Best Windows wheel coverage for TF 2.19 + PyTorch + OpenCV. |
+| Default entry point | **CV lane detection only** | Only service that works without model weights. Guaranteed first-run success. |
+| Dependency file | **`requirements-windows.txt`** | Removes `carla` (not on PyPI); pins `numpy<2.0` (required by TF). |
+| BeamNG home config | **`BEAMNG_HOME` env var wins over YAML** | YAML had hardcoded user path. Env var is portable. |
+| CARLA references | **Removed from default scripts** | No `simulation/run_carla.py` exists. CARLA is future work. |
 
 ---
 
 ## Architecture Overview
 
 ```
-project root
-├── config/           YAML configuration (BeamNG, sensors, control, perception, scenarios)
-├── services/         Flask microservices (one per perception task)
-│   ├── cv_lane_detection_service.py      port 4777 – CV-based lane detection (NO model needed)
-│   ├── object_detection_service.py       port 5777 – YOLOv11 object detection
-│   ├── traffic_light_detection_service.py port 6777 – YOLOv11 traffic light
-│   ├── sign_detection_service.py         port 7777 – YOLOv11 sign detection
-│   ├── sign_classification_service.py    port 8777 – CNN sign classification
-│   └── yolop_service.py                  port 9777 – YOLOP unified perception
-├── src/
-│   ├── communication/aggregator/  Concurrent HTTP aggregator
-│   ├── perception/                Inference logic used by services
-│   ├── sensor_fusion/             GPS, IMU, LiDAR, radar processors
-│   ├── control_planning/          PID, PIDF, ACC, AEB, path planning
-│   └── mapping/                   SLAM stubs (not yet runnable)
-├── simulation/
-│   ├── beamng.py                  Main simulation loop (requires BeamNG.tech)
-│   └── perception_client.py       Wrapper around aggregator for BeamNG loop
-├── docker/                        Docker Compose + per-service Dockerfiles
-├── scripts/                       Launch helpers (bash + PowerShell)
-└── tests/                         Unit & integration tests
+project root/
+  config/             YAML config (BeamNG, sensors, control, perception, scenarios)
+  services/           Flask microservices (one per perception task)
+    cv_lane_detection_service.py    port 4777  CV-only, no model needed  [ALWAYS-ON]
+    object_detection_service.py     port 5777  YOLOv11, needs .pt
+    traffic_light_detection_service.py port 6777  YOLOv11, needs .pt
+    sign_detection_service.py       port 7777  YOLOv11, needs .pt
+    sign_classification_service.py  port 8777  CNN, needs .h5
+    yolop_service.py                port 9777  YOLOP, needs .pt + repo
+  src/
+    communication/aggregator/  Concurrent HTTP orchestrator
+    perception/                Inference logic used by services
+    sensor_fusion/             GPS, IMU, LiDAR, radar processors
+    control_planning/          PID, PIDF, ACC, AEB, path planning
+    mapping/                   SLAM stubs (not yet runnable)
+  simulation/
+    beamng.py                  Main simulation loop (requires BeamNG.tech)
+    perception_client.py       Aggregator wrapper for BeamNG loop
+  docker/                      Docker Compose + per-service Dockerfiles
+  scripts/                     Launch helpers (bash + PowerShell)
+  tests/                       Unit + integration tests
 ```
 
 ---
 
-## What Currently Works (Without Simulators)
+## What Works Right Now (Zero External Software)
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| `services/cv_lane_detection_service.py` | ✅ Fully runnable | No model weights needed |
-| `services/object_detection_service.py` | ✅ Starts, needs `.pt` for inference | Set `MODEL_PATH` env var |
-| `services/traffic_light_detection_service.py` | ✅ Starts, needs `.pt` | Set `MODEL_PATH` env var |
-| `services/sign_detection_service.py` | ✅ Starts, needs `.pt` | Set `MODEL_PATH` env var |
-| `services/sign_classification_service.py` | ✅ Starts, needs `.h5` | Set `MODEL_PATH` env var |
-| `services/yolop_service.py` | ✅ Starts, needs YOLOP model | Requires YOLOP repo libs |
-| `src/communication/aggregator/` | ✅ Importable | Fixed circular import |
-| `config/*.yaml` | ✅ Load cleanly | Fixed path in `simulation/beamng.py` |
-| `verify_env.py` | ✅ New | Full environment checker |
-| `setup_windows.ps1` | ✅ New | One-shot Windows setup |
-| `run_windows.ps1` | ✅ New | Launcher with health check |
-| `diagnose_windows.ps1` | ✅ New | Diagnostics report |
+| `verify_env.py` | OK | Full environment checker |
+| `setup_windows.ps1` | OK | Creates venv, installs deps, verifies |
+| `run_windows.ps1` (default) | OK | Starts CV lane detection (port 4777) |
+| `diagnose_windows.ps1` | OK | Diagnostics report |
+| `services/cv_lane_detection_service.py` | OK | No model needed |
+| `src/communication/aggregator/` | OK | Fixed circular import |
+| All `config/*.yaml` | OK | Load cleanly |
+
+---
+
+## What Requires Model Weights
+
+All YOLO/CNN services need `.pt`/`.h5` files in `models/`. The files are not
+distributed with the repo. Place them as:
+
+```
+models/
+  object_detection/object_detection.pt
+  traffic_light/traffic_light_detection.pt
+  traffic_sign/traffic_sign_detection.pt
+  traffic_sign/traffic_sign_classification.h5
+  yolop/yolop.pt
+```
 
 ---
 
 ## What Requires External Software
 
-| Component | Requirement | Notes |
-|-----------|-------------|-------|
-| `simulation/beamng.py` | BeamNG.tech licence + install | Set `BEAMNG_HOME` env var |
-| `beamngpy` package | BeamNG.tech | `pip install beamngpy` then configure |
-| `carla` package | CARLA simulator 0.9.x | Install from release `.whl`, not PyPI |
-| YOLOP inference | YOLOP repo cloned to `/app/yolop_repo` | Docker or manual clone |
-| Foxglove WebSocket | `foxglove` package + Foxglove Studio | Optional visualisation |
-| Model weights (`*.pt`, `*.h5`) | Training / download | Not distributed with repo |
+| Feature | Requires | Notes |
+|---------|----------|-------|
+| BeamNG simulation | BeamNG.tech licence + install | Set `BEAMNG_HOME` |
+| `beamngpy` package | BeamNG.tech | `pip install beamngpy` |
+| CARLA simulation | CARLA 0.9.x + `run_carla.py` | Not yet implemented |
+| YOLOP inference | YOLOP repo at `/app/yolop_repo` | Docker or manual clone |
+| Foxglove viz | foxglove package + Studio | Optional |
 
 ---
 
-## Bugs Fixed in This Update
+## Bugs Fixed
 
 | File | Bug | Fix |
 |------|-----|-----|
-| `config/__innit__.py` | Filename typo prevents import | Renamed to `config/__init__.py` |
-| `src/communication/aggregator/__init__.py` | Circular import (imported from itself) | Changed to relative import `.aggregator` |
-| `src/communication/aggregator/aggregator.py` | Sent frame as JSON list; services expected base64 | Changed to `base64.b64encode(frame.tobytes())` |
-| `services/cv_lane_detection_service.py` | Missing `return response, 200`; got list instead of base64 | Added return; switched to base64 decode |
-| `services/sign_classification_service.py` | Got list instead of base64 | Switched to base64 decode |
-| `simulation/beamng.py` | Loaded config from `simulation/config/` (wrong dir) | Fixed path to `../config` |
-| `scripts/start_simulation.ps1` | Hardcoded CARLA path; referenced non-existent file | Rewritten for BeamNG with `BEAMNG_HOME` |
-| Multiple `src/` directories | Missing `__init__.py` files | Created empty `__init__.py` files |
+| `config/__innit__.py` | Filename typo - prevented import | Renamed to `__init__.py` |
+| `src/communication/aggregator/__init__.py` | Circular import | Changed to relative import `.aggregator` |
+| `src/communication/aggregator/aggregator.py` | Sent frame as JSON list; services expected base64 | Changed to `base64.b64encode` |
+| `src/communication/aggregator/aggregator.py` | ThreadPoolExecutor crash with 0 services | Added `max(len, 1)` guard |
+| `services/cv_lane_detection_service.py` | Missing `return response, 200` | Added return; switched to base64 decode |
+| `services/sign_classification_service.py` | Expected list, not base64 | Switched to base64 decode |
+| `simulation/beamng.py` | Loaded config from wrong dir | Fixed to `../config` |
+| `simulation/beamng.py` | Ignored `BEAMNG_HOME` env var | Added env var override logic |
+| `scripts/start_simulation.ps1` | Hardcoded CARLA path + missing file | Rewritten for BeamNG + `BEAMNG_HOME` |
+| `tests/aeb/test_aeb.py` | Loaded config from `beamng_sim/config/` (old path) | Fixed to `../../config/` |
+| `src/perception/object_detection/object_detection.py` | Hard `import tensorflow` broke service | Made optional |
+| `src/perception/sign_detection/detect_classify.py` | Hard `import tensorflow` broke service | Made optional |
+| Multiple `src/` dirs | Missing `__init__.py` blocked imports | Created empty `__init__.py` files |
 
 ---
 
-## Half-Migrated / Stale Code
+## Remaining Stale Code
 
-- `simulation/drive_log/data.py` – referenced but no drive_log service
-- `src/mapping/` – SLAM stubs, not runnable
-- CARLA integration – only stub scripts, no `simulation/run_carla.py`
-- `tests/aeb/test_aeb.py` loads config from `beamng_sim/config/` (old path)
-
----
-
-## Recommended Next Steps
-
-1. Add `beamngpy` to `requirements-windows.txt` once confirmed working on Windows
-2. Create `simulation/run_carla.py` or remove CARLA references
-3. Add `tests/test_services.py` with pytest-based service tests
-4. Document model download / training steps in README
-5. Fix `tests/aeb/test_aeb.py` config path
+- `src/mapping/` - SLAM stubs, not runnable
+- CARLA: only references, no implementation
+- `simulation/drive_log/data.py` - no active consumer
+- `tests/object_detection/test_obj_det.py` - not verified

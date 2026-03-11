@@ -12,7 +12,8 @@ from beamngpy.sensors import Radar
 
 
 def load_radar_config():
-    config_path = 'beamng_sim/config/perception.yaml'
+    # Config is at the project root, not beamng_sim/config/
+    config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'perception.yaml')
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     return config['perception']['radar']
