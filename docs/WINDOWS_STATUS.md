@@ -14,6 +14,16 @@
 | Dependency file | **`requirements-windows.txt`** | Removes `carla` (not on PyPI); pins `numpy<2.0` (required by TF). |
 | BeamNG home config | **`BEAMNG_HOME` env var wins over YAML** | YAML had hardcoded user path. Env var is portable. |
 | CARLA references | **Removed from default scripts** | No `simulation/run_carla.py` exists. CARLA is future work. |
+| README CARLA notice | **Removed** | Stale notice said "transitioning to CARLA" — contradicts BeamNG-first decision. |
+| `config/config.py` BEAMNG_HOME | **Reads `BEAMNG_HOME` env var first** | Hardcoded dev path replaced with `os.environ.get()` fallback pattern. |
+| Test import path | **`src.communication.aggregator`** | `tests/test_aggregator.py` had wrong `sys.path` and bare `from aggregator import`. |
+
+### Alternatives Rejected
+
+- **CARLA as primary simulator**: No `simulation/run_carla.py` exists. Zero runnable CARLA code. Would be misleading.
+- **`requirements.txt` for Windows**: Contains `carla` which is not on PyPI. Always fails `pip install -r requirements.txt`.
+- **Python 3.12 as default**: Works, but TF 2.19 wheels are less reliable. 3.11 is the safe choice.
+- **Starting all 6 services by default**: 5 of 6 need model files. A default that requires manual model downloads is not a successful first run.
 
 ---
 
@@ -83,7 +93,7 @@ models/
 | `beamngpy` package | BeamNG.tech | `pip install beamngpy` |
 | CARLA simulation | CARLA 0.9.x + `run_carla.py` | Not yet implemented |
 | YOLOP inference | YOLOP repo at `/app/yolop_repo` | Docker or manual clone |
-| Foxglove viz | foxglove package + Studio | Optional |
+| Foxglove viz | `pip install foxglove-sdk` + Foxglove Studio | Optional — simulation runs without it |
 
 ---
 
@@ -92,6 +102,7 @@ models/
 | File | Bug | Fix |
 |------|-----|-----|
 | `config/__innit__.py` | Filename typo - prevented import | Renamed to `__init__.py` |
+| `config/config.py` | Hardcoded `BEAMNG_HOME` path — broken on any machine except dev | Made `BEAMNG_HOME` read from env var with hardcoded path as fallback |
 | `src/communication/aggregator/__init__.py` | Circular import | Changed to relative import `.aggregator` |
 | `src/communication/aggregator/aggregator.py` | Sent frame as JSON list; services expected base64 | Changed to `base64.b64encode` |
 | `src/communication/aggregator/aggregator.py` | ThreadPoolExecutor crash with 0 services | Added `max(len, 1)` guard |
@@ -99,11 +110,25 @@ models/
 | `services/sign_classification_service.py` | Expected list, not base64 | Switched to base64 decode |
 | `simulation/beamng.py` | Loaded config from wrong dir | Fixed to `../config` |
 | `simulation/beamng.py` | Ignored `BEAMNG_HOME` env var | Added env var override logic |
+| `simulation/beamng.py` | Top-level `import tensorflow`, `import torch`, `from ultralytics import YOLO` — crashes if packages absent, not used in this file | Removed unused imports |
+| `simulation/beamng.py` | `from foxglove.schemas import Color` crashes if foxglove not installed | Wrapped in `try/except ImportError` |
+| `simulation/beamng.py` | `radar_name.poll()` in sensor test loop — `radar_name` is a string key, not a Radar object | Fixed to `radar.poll()` |
+| `simulation/beamng.py` | Dead throttle computation before speed-mode block was immediately overwritten by `throttle = 0.0` | Removed dead lines |
+| `simulation/beamng.py` | Foxglove bridge used before `start_server()` + `initialize_channels()` were called | Added bridge startup at start of `main()` with `if bridge is not None:` guard |
+| `simulation/beamng.py` | `car_pos` and `direction` can be `None` briefly at startup; arithmetic on `None` crashes | Added early-continue guard; `car_pos_arr = np.array(car_pos)` for safe arithmetic |
+| `simulation/beamng.py` | `bridge.lane_channel.log(...)` called without null-check on `bridge` | Wrapped with `if bridge is not None:` |
+| `simulation/beamng.py` | `car_pos + np.array([...])` fails when `car_pos` is a list/tuple | Changed to `car_pos_arr + np.array([...])` |
+| `simulation/perception_client.py` | `from aggregator import PerceptionAggregator` — wrong module path | Fixed to `from src.communication.aggregator import PerceptionAggregator, AggregationResult` |
+| `simulation/foxglove_integration/bridge_instance.py` | No guard — crashes at import if `foxglove` not installed | Wrapped in `try/except ImportError`; `bridge = None` fallback |
+| `simulation/foxglove_integration/foxglove_bridge.py` | `_get_urdf_path()` used `"model"` directory name; actual dir is `"3d_model"` | Fixed to `"3d_model"` |
+| `simulation/foxglove_integration/foxglove_bridge.py` | 5 GLB mesh paths hardcoded as absolute Windows dev-machine paths | Replaced with `Path(__file__).parent / "3d_model" / "bmw_x5" / "meshes"` relative paths |
 | `scripts/start_simulation.ps1` | Hardcoded CARLA path + missing file | Rewritten for BeamNG + `BEAMNG_HOME` |
 | `tests/aeb/test_aeb.py` | Loaded config from `beamng_sim/config/` (old path) | Fixed to `../../config/` |
+| `tests/test_aggregator.py` | `sys.path` pointed to `tests/` not project root; bare `from aggregator import` | Set `project_root` to `Path(__file__).parent.parent`; import from `src.communication.aggregator` |
 | `src/perception/object_detection/object_detection.py` | Hard `import tensorflow` broke service | Made optional |
 | `src/perception/sign_detection/detect_classify.py` | Hard `import tensorflow` broke service | Made optional |
 | Multiple `src/` dirs | Missing `__init__.py` blocked imports | Created empty `__init__.py` files |
+| `README.md` | Stale "transitioning to CARLA" notice contradicted BeamNG-first decision | Removed the notice |
 
 ---
 

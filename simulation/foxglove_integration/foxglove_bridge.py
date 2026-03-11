@@ -232,7 +232,7 @@ class FoxgloveBridge:
     def _get_urdf_path(self):
         """Get URDF file path as file:// URL"""
         bridge_dir = Path(__file__).parent
-        urdf_path = bridge_dir / "model" / "bmw_x5" / "bmw_x5.urdf"
+        urdf_path = bridge_dir / "3d_model" / "bmw_x5" / "bmw_x5.urdf"
         if urdf_path.exists():
             file_url = urdf_path.as_uri()
             print(f"URDF file available at: {file_url}")
@@ -261,8 +261,9 @@ class FoxgloveBridge:
             print("To view in Foxglove: Open the 3D panel → Add layer → select URDF layer → paste URL above")
         
         # Approach 2: Send as GLB meshes (embedded in scene)
+        _meshes_dir = Path(__file__).parent / "3d_model" / "bmw_x5" / "meshes"
         try:
-            with open(r"c:\Users\user\Documents\github\self-driving-car-simulation\beamng_sim\foxglove_integration\model\bmw_x5\meshes\car_body.glb", "rb") as f:
+            with open(_meshes_dir / "car_body.glb", "rb") as f:
                 body_data = f.read()
             
             body_model = ModelPrimitive(
@@ -288,7 +289,7 @@ class FoxgloveBridge:
         
         # Front left wheel
         try:
-            with open(r"c:\Users\user\Documents\github\self-driving-car-simulation\beamng_sim\foxglove_integration\model\bmw_x5\meshes\wheel_front_left.glb", "rb") as f:
+            with open(_meshes_dir / "wheel_front_left.glb", "rb") as f:
                 wheel_fl_data = f.read()
             
             wheel_fl_model = ModelPrimitive(
@@ -313,7 +314,7 @@ class FoxgloveBridge:
         
         # Front right wheel
         try:
-            with open(r"c:\Users\user\Documents\github\self-driving-car-simulation\beamng_sim\foxglove_integration\model\bmw_x5\meshes\wheel_front_right.glb", "rb") as f:
+            with open(_meshes_dir / "wheel_front_right.glb", "rb") as f:
                 wheel_fr_data = f.read()
             
             wheel_fr_model = ModelPrimitive(
@@ -338,7 +339,7 @@ class FoxgloveBridge:
         
         # Rear left wheel
         try:
-            with open(r"c:\Users\user\Documents\github\self-driving-car-simulation\beamng_sim\foxglove_integration\model\bmw_x5\meshes\wheel_rear_left.glb", "rb") as f:
+            with open(_meshes_dir / "wheel_rear_left.glb", "rb") as f:
                 wheel_rl_data = f.read()
             
             wheel_rl_model = ModelPrimitive(
@@ -363,7 +364,7 @@ class FoxgloveBridge:
         
         # Rear right wheel
         try:
-            with open(r"c:\Users\user\Documents\github\self-driving-car-simulation\beamng_sim\foxglove_integration\model\bmw_x5\meshes\wheel_rear_right.glb", "rb") as f:
+            with open(_meshes_dir / "wheel_rear_right.glb", "rb") as f:
                 wheel_rr_data = f.read()
             
             wheel_rr_model = ModelPrimitive(
