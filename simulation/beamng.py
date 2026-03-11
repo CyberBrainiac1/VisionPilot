@@ -9,13 +9,14 @@ from utils.pid_controller import PIDController
 
 from beamngpy import BeamNGpy, Scenario, Vehicle
 from beamngpy.sensors import Camera, Lidar, Radar, GPS, AdvancedIMU
-from foxglove.schemas import Color
 
-from ultralytics import YOLO
-import tensorflow as tf
-from tensorflow.keras.models import load_model
+try:
+    from foxglove.schemas import Color
+    _FOXGLOVE_AVAILABLE = True
+except ImportError:
+    Color = None
+    _FOXGLOVE_AVAILABLE = False
 
-import torch
 import numpy as np
 import time
 import math
@@ -23,7 +24,6 @@ import cv2
 from scipy.spatial.transform import Rotation as R
 
 from simulation.perception_client import PerceptionClient
-
 
 from src.sensor_fusion.lidar.main import process_frame as lidar_process_frame
 from src.sensor_fusion.radar.main import process_frame as radar_process_frame
@@ -386,6 +386,17 @@ def main():
     Main function to run the simulation.
     """
 
+    # Start Foxglove visualization server (optional - gracefully disabled if foxglove not installed)
+    if bridge is not None:
+        try:
+            bridge.start_server()
+            bridge.initialize_channels()
+            print("Foxglove server started on ws://localhost:8765")
+        except Exception as fox_e:
+            print(f"Foxglove server failed to start: {fox_e}")
+    else:
+        print("Foxglove visualization disabled (foxglove package not installed)")
+
     print("Initializing aggregator client")
     perception_client = PerceptionClient(
         host='localhost',
@@ -433,12 +444,12 @@ def main():
     try:
         for radar_name, radar in radars.items():
             try:
-                radar_test = radar_name.poll()
+                radar_test = radar.poll()
                 print(f"{radar_name} working: {type(radar_test)}")
             except Exception as e:
                 print(f"{radar_name} error: {e}")
     except Exception as e:
-        print(f"{radar_name} error: {e}")
+        print(f"Radar test loop error: {e}")
 
     try:
         print("Testing GPS...")
@@ -579,20 +590,25 @@ def main():
             if abs(steering_change) > max_steering_change:
                 steering = previous_steering + np.sign(steering_change) * max_steering_change
 
-            throttle = cruise_control(target_speed_kph, speed_kph, speed_pid, dt)
-            throttle = throttle * (1.0 - 0.3 * abs(steering))
-            throttle = np.clip(throttle, 0.05, 0.3)
-
             fused_confidence = lane_metrics.get('confidence', 0.0)
             
+            # Guard against None position/direction (BeamNG may return None briefly at startup).
+            # Update steering tracker and counters then skip the rest of this frame.
+            if car_pos is None or direction is None:
+                previous_steering = steering
+                frame_count += 1
+                step_i += 1
+                continue
+
             # Calculate vehicle yaw from direction
             car_yaw = np.arctan2(-direction[1], -direction[0])
+            car_pos_arr = np.array(car_pos)  # ensure numpy array for arithmetic
             
             # LiDAR pose (offset from base_link + vehicle rotation/position)
             lidar_offset = np.array([0.0, -0.35, 1.425])
             car_quat = yaw_rad_to_quaternion(car_yaw)
             rotation = R.from_quat([car_quat[0], car_quat[1], car_quat[2], car_quat[3]])
-            lidar_pos_in_map = rotation.apply(lidar_offset) + car_pos
+            lidar_pos_in_map = rotation.apply(lidar_offset) + car_pos_arr
             lidar_yaw = car_yaw  # LiDAR has same yaw as vehicle
 
 
@@ -666,6 +682,7 @@ def main():
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+            previous_steering = steering
             frame_count += 1
             step_i += 1
 
@@ -688,34 +705,36 @@ def main():
                         {"x": float(p[0]), "y": float(p[1]), "z": float(p[2]) if len(p) > 2 else 0.0}
                         for p in lidar_lane_boundaries['right_lane_points']
                     ]
-                bridge.lane_channel.log(lane_message)
+                if bridge is not None:
+                    bridge.lane_channel.log(lane_message)
                 
-                # Send lane paths
-                try:
-                    timestamp_ns = get_timestamp_ns()
-                    if lidar_lane_boundaries and 'left_lane_points' in lidar_lane_boundaries:
-                        left_points = np.array(lidar_lane_boundaries['left_lane_points'])
-                        if len(left_points) > 0:
-                            bridge.send_lane_path(
-                                left_points,
-                                timestamp_ns=timestamp_ns,
-                                lane_id="left_lane",
-                                color=Color(r=1.0, g=0.0, b=0.0, a=1.0),  # Red
-                                thickness=0.2
-                            )
-                    
-                    if lidar_lane_boundaries and 'right_lane_points' in lidar_lane_boundaries:
-                        right_points = np.array(lidar_lane_boundaries['right_lane_points'])
-                        if len(right_points) > 0:
-                            bridge.send_lane_path(
-                                right_points,
-                                timestamp_ns=timestamp_ns,
-                                lane_id="right_lane",
-                                color=Color(r=0.0, g=0.0, b=1.0, a=1.0),  # Blue
-                                thickness=0.2
-                            )
-                except Exception as lane_visual_e:
-                    print(f"Error sending lane visualization: {lane_visual_e}")
+                # Send lane paths (only when Foxglove is available so Color() is valid)
+                if bridge is not None and _FOXGLOVE_AVAILABLE:
+                    try:
+                        timestamp_ns = get_timestamp_ns()
+                        if lidar_lane_boundaries and 'left_lane_points' in lidar_lane_boundaries:
+                            left_points = np.array(lidar_lane_boundaries['left_lane_points'])
+                            if len(left_points) > 0:
+                                bridge.send_lane_path(
+                                    left_points,
+                                    timestamp_ns=timestamp_ns,
+                                    lane_id="left_lane",
+                                    color=Color(r=1.0, g=0.0, b=0.0, a=1.0),  # Red
+                                    thickness=0.2
+                                )
+                        
+                        if lidar_lane_boundaries and 'right_lane_points' in lidar_lane_boundaries:
+                            right_points = np.array(lidar_lane_boundaries['right_lane_points'])
+                            if len(right_points) > 0:
+                                bridge.send_lane_path(
+                                    right_points,
+                                    timestamp_ns=timestamp_ns,
+                                    lane_id="right_lane",
+                                    color=Color(r=0.0, g=0.0, b=1.0, a=1.0),  # Blue
+                                    thickness=0.2
+                                )
+                    except Exception as lane_visual_e:
+                        print(f"Error sending lane visualization: {lane_visual_e}")
             except Exception as lane_det_send_e:
                 print(f"Error sending lane detection to Foxglove: {lane_det_send_e}")
 
@@ -834,7 +853,7 @@ def main():
                     bridge.send_2d_detections_as_3d(
                         all_detections,
                         timestamp_ns,
-                        camera_pos=car_pos + np.array([0, -1.3, 1.4]),
+                        camera_pos=car_pos_arr + np.array([0, -1.3, 1.4]),
                         camera_dir=direction,
                         frame_id="map"
                     )

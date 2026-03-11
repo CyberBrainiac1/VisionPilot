@@ -74,6 +74,20 @@ This additionally runs `pip install beamngpy`.
 
 ---
 
+## Optional: Foxglove Visualization
+
+Foxglove Studio provides real-time 3D visualization of the simulation (LiDAR point cloud, vehicle pose, lane detections, camera feed, 2D/3D bounding boxes).
+
+The simulation runs without it — all `bridge.*` calls silently no-op if foxglove is not installed.
+
+```powershell
+pip install foxglove-sdk
+```
+
+Then open [Foxglove Studio](https://foxglove.dev/studio) and connect to `ws://localhost:8765`.
+
+---
+
 ## Optional: BeamNG.tech
 
 1. Purchase a [BeamNG.tech](https://www.beamng.tech/) licence.
