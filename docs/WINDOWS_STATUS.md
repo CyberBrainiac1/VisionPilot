@@ -14,6 +14,16 @@
 | Dependency file | **`requirements-windows.txt`** | Removes `carla` (not on PyPI); pins `numpy<2.0` (required by TF). |
 | BeamNG home config | **`BEAMNG_HOME` env var wins over YAML** | YAML had hardcoded user path. Env var is portable. |
 | CARLA references | **Removed from default scripts** | No `simulation/run_carla.py` exists. CARLA is future work. |
+| README CARLA notice | **Removed** | Stale notice said "transitioning to CARLA" — contradicts BeamNG-first decision. |
+| `config/config.py` BEAMNG_HOME | **Reads `BEAMNG_HOME` env var first** | Hardcoded dev path replaced with `os.environ.get()` fallback pattern. |
+| Test import path | **`src.communication.aggregator`** | `tests/test_aggregator.py` had wrong `sys.path` and bare `from aggregator import`. |
+
+### Alternatives Rejected
+
+- **CARLA as primary simulator**: No `simulation/run_carla.py` exists. Zero runnable CARLA code. Would be misleading.
+- **`requirements.txt` for Windows**: Contains `carla` which is not on PyPI. Always fails `pip install -r requirements.txt`.
+- **Python 3.12 as default**: Works, but TF 2.19 wheels are less reliable. 3.11 is the safe choice.
+- **Starting all 6 services by default**: 5 of 6 need model files. A default that requires manual model downloads is not a successful first run.
 
 ---
 
@@ -92,6 +102,7 @@ models/
 | File | Bug | Fix |
 |------|-----|-----|
 | `config/__innit__.py` | Filename typo - prevented import | Renamed to `__init__.py` |
+| `config/config.py` | Hardcoded `BEAMNG_HOME` path — broken on any machine except dev | Made `BEAMNG_HOME` read from env var with hardcoded path as fallback |
 | `src/communication/aggregator/__init__.py` | Circular import | Changed to relative import `.aggregator` |
 | `src/communication/aggregator/aggregator.py` | Sent frame as JSON list; services expected base64 | Changed to `base64.b64encode` |
 | `src/communication/aggregator/aggregator.py` | ThreadPoolExecutor crash with 0 services | Added `max(len, 1)` guard |
@@ -101,9 +112,11 @@ models/
 | `simulation/beamng.py` | Ignored `BEAMNG_HOME` env var | Added env var override logic |
 | `scripts/start_simulation.ps1` | Hardcoded CARLA path + missing file | Rewritten for BeamNG + `BEAMNG_HOME` |
 | `tests/aeb/test_aeb.py` | Loaded config from `beamng_sim/config/` (old path) | Fixed to `../../config/` |
+| `tests/test_aggregator.py` | `sys.path` pointed to `tests/` not project root; bare `from aggregator import` | Set `project_root` to `Path(__file__).parent.parent`; import from `src.communication.aggregator` |
 | `src/perception/object_detection/object_detection.py` | Hard `import tensorflow` broke service | Made optional |
 | `src/perception/sign_detection/detect_classify.py` | Hard `import tensorflow` broke service | Made optional |
 | Multiple `src/` dirs | Missing `__init__.py` blocked imports | Created empty `__init__.py` files |
+| `README.md` | Stale "transitioning to CARLA" notice contradicted BeamNG-first decision | Removed the notice |
 
 ---
 
