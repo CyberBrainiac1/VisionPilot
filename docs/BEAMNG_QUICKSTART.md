@@ -31,10 +31,10 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```powershell
 git clone https://github.com/CyberBrainiac1/VisionPilot.git
 cd VisionPilot
-.\quickstart_beamng.ps1 -BeamNGHome "C:\Users\YourName\BeamNG.tech.v0.37.6.0"
+.\quickstart_beamng.ps1 -BeamNGHome "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
 ```
 
-> **Only edit** `C:\Users\YourName\BeamNG.tech.v0.37.6.0` — replace it with the actual
+> **Only edit** `C:\Users\<you>\BeamNG.tech.v0.37.6.0` — replace it with the actual
 > folder that contains `BeamNG.tech.exe`.
 
 The script will:
@@ -63,11 +63,18 @@ cd VisionPilot
 | Traffic light detection | 6777 | Needs `models\traffic_light\traffic_light_detection.pt` |
 | Sign detection | 7777 | Needs `models\traffic_sign\traffic_sign_detection.pt` |
 | Sign classification | 8777 | Needs `models\traffic_sign\traffic_sign_classification.h5` |
-| YOLOP | 9777 | Needs `models\yolop\yolop.pt` |
-| BeamNG simulation loop | — | `simulation\beamng.py` |
+| YOLOP | 9777 | Needs `models\yolop\yolop.pt` + `YOLOP_REPO_PATH` env var |
+| BeamNG simulation loop | — | `simulation\beamng.py` — drives the vehicle |
 
 Services without model files start but return errors at inference time.
 See [WINDOWS_SETUP.md](WINDOWS_SETUP.md#model-weights) for where to place the weight files.
+
+The simulation loop:
+- Reads camera, LiDAR, radar, GPS, and IMU data from BeamNG each tick.
+- Sends the camera frame to all perception services concurrently.
+- Computes PID steering from lane deviation and cruise-control throttle.
+- Sends `vehicle.control(throttle, steering, brake)` back to BeamNG so the car drives.
+- Optionally streams telemetry to Foxglove Studio for live visualisation.
 
 ---
 
@@ -82,6 +89,19 @@ Then open [Foxglove Studio](https://foxglove.dev/studio) and connect to `ws://lo
 
 ---
 
+## Optional: YOLOP service
+
+YOLOP requires its own repository cloned locally.
+
+```powershell
+git clone https://github.com/hustvl/YOLOP.git C:\yolop_repo
+$env:YOLOP_REPO_PATH = "C:\yolop_repo"
+```
+
+Then restart services.
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
@@ -90,6 +110,7 @@ Then open [Foxglove Studio](https://foxglove.dev/studio) and connect to `ws://lo
 | `BeamNG.tech not found` | Check the path — it must contain `BeamNG.tech.exe` |
 | `.venv not found` | `.\setup_windows.ps1 -WithBeamNG` |
 | `BEAMNG_HOME not set` in a new terminal | Re-run Block 2 once; the env var is then persisted |
+| Car doesn't move / steers straight | Ensure `cv_lane_detection` on port 4777 is healthy |
 | Services show `[!!]` | Missing model weight files — check `logs\<service>.err` |
 | Port conflict | `Get-Process python \| Stop-Process` |
 | Anything else | `.\diagnose_windows.ps1` |

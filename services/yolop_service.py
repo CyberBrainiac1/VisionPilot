@@ -8,7 +8,8 @@ from flask import Flask, request, jsonify
 import torchvision.transforms as transforms
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-sys.path.insert(0, '/app/yolop_repo')
+yolop_repo_path = os.environ.get('YOLOP_REPO_PATH', '/app/yolop_repo')
+sys.path.insert(0, yolop_repo_path)
 
 # Import YOLOP model utilities (from inference example)
 try:

@@ -23,8 +23,8 @@
     Use this on subsequent runs if you only want to re-launch.
 
 .EXAMPLE
-    .\quickstart_beamng.ps1 -BeamNGHome "C:\Users\Alice\BeamNG.tech.v0.37.6.0"
-    .\quickstart_beamng.ps1 -BeamNGHome "C:\Users\Alice\BeamNG.tech.v0.37.6.0" -SkipSetup
+    .\quickstart_beamng.ps1 -BeamNGHome "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
+    .\quickstart_beamng.ps1 -BeamNGHome "C:\Users\<you>\BeamNG.tech.v0.37.6.0" -SkipSetup
 #>
 
 param(
@@ -53,7 +53,7 @@ if (-not (Test-Path $BeamNGHome)) {
     Write-Host "       $BeamNGHome" -ForegroundColor Red
     Write-Host ""
     Write-Host "Check the path and retry. Example:" -ForegroundColor Yellow
-    Write-Host '  .\quickstart_beamng.ps1 -BeamNGHome "C:\Users\YourName\BeamNG.tech.v0.37.6.0"' -ForegroundColor White
+    Write-Host '  .\quickstart_beamng.ps1 -BeamNGHome "C:\Users\<you>\BeamNG.tech.v0.37.6.0"' -ForegroundColor White
     exit 1
 }
 

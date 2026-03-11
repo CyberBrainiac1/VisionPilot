@@ -285,7 +285,7 @@ def process_frame_cv(img, speed=0, previous_steering=0, debug_display=False, per
     
 
 if __name__ == "__main__":
-    video_path = "/Users/julian/Documents/github/self-driving-project/nl_highway_curve.mp4"
+    video_path = os.environ.get('VIDEO_PATH', 'nl_highway_curve.mp4')
     cap = cv2.VideoCapture(video_path)
 
     if not cap.isOpened():

@@ -310,7 +310,7 @@ def get_vehicle_speed(vehicle):
 
     vehicle.poll_sensors()
     if 'vel' in vehicle.state:
-        speed_mps = vehicle.state['vel'][0]
+        speed_mps = float(np.linalg.norm(vehicle.state['vel']))
         speed_kph = speed_mps * 3.6
     else:
         speed_mps = 0.0
@@ -513,8 +513,9 @@ def main():
 
             # Send camera image to Foxglove
             try:
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_camera_image(img, timestamp_ns, frame_id="camera")
+                if bridge is not None:
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_camera_image(img, timestamp_ns, frame_id="camera")
             except Exception as camera_send_e:
                 print(f"Error sending camera image to Foxglove: {camera_send_e}")
 
@@ -680,6 +681,9 @@ def main():
             throttle = throttle * (1.0 - 0.3 * abs(steering))
             throttle = np.clip(throttle, 0.05, 0.3)
 
+            # Apply control commands to the vehicle
+            vehicle.control(throttle=throttle, steering=steering, brake=brake)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             previous_steering = steering
@@ -740,75 +744,79 @@ def main():
 
             try:
                 # Send vehicle control state (steering, throttle, brake)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_vehicle_control(
-                    timestamp_ns=timestamp_ns,
-                    speed_kph=speed_kph,
-                    steering=steering,
-                    throttle=throttle,
-                    brake=0.0
-                )
+                if bridge is not None:
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_vehicle_control(
+                        timestamp_ns=timestamp_ns,
+                        speed_kph=speed_kph,
+                        steering=steering,
+                        throttle=throttle,
+                        brake=0.0
+                    )
             except Exception as control_send_e:
                 print(f"Error sending vehicle control to Foxglove: {control_send_e}")
 
             try:
                 # Send vehicle pose (PosesInFrame)
-                car_yaw = np.arctan2(-direction[1], -direction[0])
-                quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_vehicle_pose(
-                    timestamp_ns=timestamp_ns,
-                    x=car_pos[0],
-                    y=car_pos[1],
-                    z=car_pos[2],
-                    quat_x=quat_x,
-                    quat_y=quat_y,
-                    quat_z=quat_z,
-                    quat_w=quat_w,
-                    frame_id="map"
-                )
+                if bridge is not None:
+                    car_yaw = np.arctan2(-direction[1], -direction[0])
+                    quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_vehicle_pose(
+                        timestamp_ns=timestamp_ns,
+                        x=car_pos[0],
+                        y=car_pos[1],
+                        z=car_pos[2],
+                        quat_x=quat_x,
+                        quat_y=quat_y,
+                        quat_z=quat_z,
+                        quat_w=quat_w,
+                        frame_id="map"
+                    )
             except Exception as pose_send_e:
                 print(f"Error sending vehicle pose to Foxglove: {pose_send_e}")
 
             try:
                 # Publish complete TF tree (map - base_link - lidar_top)
-                car_yaw = np.arctan2(-direction[1], -direction[0])
-                quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_tf_tree(
-                    timestamp_ns=timestamp_ns,
-                    x=car_pos[0],
-                    y=car_pos[1],
-                    z=car_pos[2],
-                    quat_x=quat_x,
-                    quat_y=quat_y,
-                    quat_z=quat_z,
-                    quat_w=quat_w
-                )
+                if bridge is not None:
+                    car_yaw = np.arctan2(-direction[1], -direction[0])
+                    quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_tf_tree(
+                        timestamp_ns=timestamp_ns,
+                        x=car_pos[0],
+                        y=car_pos[1],
+                        z=car_pos[2],
+                        quat_x=quat_x,
+                        quat_y=quat_y,
+                        quat_z=quat_z,
+                        quat_w=quat_w
+                    )
             except Exception as tf_send_e:
                 print(f"Error publishing TF tree to Foxglove: {tf_send_e}")
 
             try:
-                car_yaw = np.arctan2(-direction[1], -direction[0])
-                quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_vehicle_3d(
-                    timestamp_ns=timestamp_ns,
-                    x=car_pos[0],
-                    y=car_pos[1],
-                    z=car_pos[2],
-                    quat_x=quat_x,
-                    quat_y=quat_y,
-                    quat_z=quat_z,
-                    quat_w=quat_w,
-                    frame_id="map"
-                )
+                if bridge is not None:
+                    car_yaw = np.arctan2(-direction[1], -direction[0])
+                    quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_vehicle_3d(
+                        timestamp_ns=timestamp_ns,
+                        x=car_pos[0],
+                        y=car_pos[1],
+                        z=car_pos[2],
+                        quat_x=quat_x,
+                        quat_y=quat_y,
+                        quat_z=quat_z,
+                        quat_w=quat_w,
+                        frame_id="map"
+                    )
             except Exception as vehicle_3d_send_e:
                 print(f"Error sending vehicle 3D model to Foxglove: {vehicle_3d_send_e}")
 
             try:
                 # Send LiDAR point cloud
-                if filtered_points is not None and len(filtered_points) > 0:
+                if bridge is not None and filtered_points is not None and len(filtered_points) > 0:
                     timestamp_ns = get_timestamp_ns()
                     
                     bridge.send_lidar(
@@ -847,7 +855,7 @@ def main():
                         'type': 'traffic_light'
                     })
                 
-                if all_detections:
+                if all_detections and bridge is not None:
                     bridge.send_2d_detections(all_detections, timestamp_ns, image_width=1280, image_height=720)
                     
                     bridge.send_2d_detections_as_3d(

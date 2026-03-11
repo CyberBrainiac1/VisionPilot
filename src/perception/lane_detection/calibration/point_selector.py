@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 
@@ -39,5 +40,5 @@ def select_perspective_points(video_path):
 
 
 if __name__ == "__main__":
-    video_path = "/Users/julian/Documents/github/self-driving-project/nl_highway.mp4"
+    video_path = os.environ.get('VIDEO_PATH', 'nl_highway.mp4')
     points = select_perspective_points(video_path)
