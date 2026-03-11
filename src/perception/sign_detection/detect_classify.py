@@ -1,10 +1,15 @@
 import cv2 as cv
 import numpy as np
 from ultralytics import YOLO
-import tensorflow as tf
 import sys
-from tensorflow.keras.models import load_model
 from config.config import SIGN_DETECTION_MODEL, SIGN_CLASSIFICATION_MODEL
+
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+except ImportError:
+    tf = None
+    load_model = None  # TensorFlow required for sign classification (CNN model)
 
 IMG_SIZE = (48, 48)
 SIGN_MODEL_PATH = str(SIGN_DETECTION_MODEL)

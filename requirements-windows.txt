@@ -1,0 +1,29 @@
+# VisionPilot – Windows-compatible requirements
+#
+# Differences from requirements.txt:
+#   - 'carla' is removed: the CARLA Python client is NOT on PyPI.
+#     Install it manually from a CARLA release wheel:
+#       pip install <CARLA_ROOT>/PythonAPI/carla/dist/carla-*.whl
+#     See docs/WINDOWS_SETUP.md for full instructions.
+#   - tensorflow pin kept as-is; TF 2.19 ships Windows wheels via PyPI.
+#   - beamngpy is NOT listed here – install it only when you have a
+#     BeamNG.tech licence (pip install beamngpy).
+
+tensorflow==2.19.0
+keras==3.10.0
+matplotlib==3.7.3
+ipython
+numpy>=1.22.4,<2.0
+pandas
+scikit-learn
+Pillow
+opencv-python
+tqdm
+flask==3.0.0
+requests==2.31.0
+flask-cors
+ultralytics>=8.0.28
+pyyaml
+scipy
+torch
+torchvision

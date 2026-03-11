@@ -38,6 +38,7 @@
     - [README To-Dos](#readme-to-dos)
     - [Other](#other)
   - [Note on Installation](#note-on-installation)
+  - [Windows Quickstart](#windows-quickstart)
   - [Known Limitations](#known-limitations)
     - [Simulator-Specific Limitations](#simulator-specific-limitations)
   - [Credits](#credits)
@@ -338,6 +339,39 @@ Extract individual results + visualize
 ## Note on Installation
 
 > **Status:** This project is currently in **active development**. A stable, production-ready release with pre-trained models and complete documentation will be available eventually.
+
+## Windows Quickstart
+
+> Full guide: [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) · [docs/WINDOWS_RUN_GUIDE.md](docs/WINDOWS_RUN_GUIDE.md)
+
+**Prerequisites:** Python 3.9+, Git, PowerShell 5.1+
+
+```powershell
+# Allow scripts (one-time, run as Administrator if needed)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Clone
+git clone https://github.com/CyberBrainiac1/VisionPilot.git
+cd VisionPilot
+
+# Setup (creates .venv, installs deps, verifies environment)
+.\setup_windows.ps1
+
+# Start perception services and check health
+.\run_windows.ps1
+
+# Run diagnostics if something is wrong
+.\diagnose_windows.ps1
+```
+
+**For BeamNG simulation** (requires BeamNG.tech licence):
+```powershell
+$env:BEAMNG_HOME = "C:\Path\To\BeamNG.tech.vX.X"
+.\run_windows.ps1 -Mode beamng
+```
+
+> **Note:** `carla` is excluded from `requirements-windows.txt` because it is not on
+> PyPI. Install it from the CARLA release wheel if needed. See [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md).
 
 ## Known Limitations
 

@@ -21,3 +21,7 @@ __pycache__/
 beamng_sim/debug_output_old/
 beamng_sim/object/object_detection.ipynb
 DIRECTORY_STRUCTURE.md
+
+# VisionPilot service logs (keep the directory, ignore log content)
+logs/*.log
+logs/*.err

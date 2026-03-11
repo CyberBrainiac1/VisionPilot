@@ -1,3 +1,4 @@
+import base64
 import os
 import sys
 import numpy as np
@@ -49,19 +50,21 @@ def process_lane_detection():
         "result_image": [resized image as array]
     }
     """
+    data = None
     try:
         data = request.get_json()
-        
-        # Decode frame from request
-        frame_data = np.array(data['frame'], dtype=np.uint8)
+
+        # Decode frame from request (base64 encoded)
+        frame_b64 = data['frame']
+        frame_bytes = base64.b64decode(frame_b64)
         frame_shape = data.get('frame_shape', [1080, 1920, 3])
-        frame = frame_data.reshape(frame_shape)
-        
+        frame = np.frombuffer(frame_bytes, dtype=np.uint8).reshape(frame_shape)
+
         speed_kph = data.get('speed_kph', 0.0)
         frame_id = data.get('frame_id', 'unknown')
-        
+
         print(f"[CV Lane Detection Service] Processing frame {frame_id}: {frame.shape}, speed: {speed_kph:.1f} kph")
-        
+
         # Call CV lane detection
         result_img, metrics, confidence = process_frame_cv(
             frame,
@@ -73,7 +76,7 @@ def process_lane_detection():
             vehicle_model='q8_andronisk',
             num_lanes=3
         )
-        
+
         # Prepare response
         response = {
             'frame_id': frame_id,
@@ -90,7 +93,9 @@ def process_lane_detection():
                 'detected_num_lanes': int(metrics.get('detected_num_lanes', 0))
             }
         }
-        
+
+        return response, 200
+
     except Exception as e:
         print(f"[CV Lane Detection Service] Error processing frame: {e}")
         import traceback
@@ -98,7 +103,7 @@ def process_lane_detection():
         return {
             'status': 'error',
             'message': str(e),
-            'frame_id': data.get('frame_id', 'unknown')
+            'frame_id': data.get('frame_id', 'unknown') if data else 'unknown'
         }, 500
 
 

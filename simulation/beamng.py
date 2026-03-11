@@ -69,7 +69,7 @@ def get_timestamp_ns():
 
 def load_config():
     """Load all configuration files."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config')
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config')
     
     with open(os.path.join(config_path, 'beamng_sim.yaml'), 'r') as f:
         beamng_config = yaml.safe_load(f)

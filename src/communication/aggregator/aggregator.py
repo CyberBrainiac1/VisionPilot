@@ -1,3 +1,4 @@
+import base64
 import numpy as np
 import requests
 import time
@@ -60,9 +61,9 @@ class PerceptionAggregator:
         self.timeout = timeout
         self.retry_count = retry_count
         
-        # Set max_workers to number of services if not specified
+        # Set max_workers to number of services if not specified, minimum 1
         if max_workers is None:
-            max_workers = len(service_config)
+            max_workers = max(len(service_config), 1)
         
         # ThreadPoolExecutor manages concurrent requests
         self.executor = ThreadPoolExecutor(
@@ -167,43 +168,42 @@ class PerceptionAggregator:
     def _prepare_payload(self, frame, speed_kph, timestamp_ns, vehicle_pos=None, vehicle_direction=None):
         """
         Convert numpy frame to JSON-serializable payload.
-        
-        This is the critical bottleneck - we convert the numpy array to a list.
-        
+
+        The frame is base64-encoded for efficient JSON transport.
+        All services decode it with base64.b64decode().
+
         Args:
             frame: numpy array
             speed_kph: vehicle speed
             timestamp_ns: timestamp
             vehicle_pos: optional position
             vehicle_direction: optional direction
-        
+
         Returns:
             Dict ready to send via JSON over HTTP
         """
-        # Convert numpy array to list
-        # This is necessary because JSON doesn't natively support numpy types
-        logger.debug(f"Converting frame {frame.shape} to list...")
+        logger.debug(f"Encoding frame {frame.shape} as base64...")
         start_convert = time.time()
-        
-        frame_list = frame.tolist()  # Convert to nested lists
-        
+
+        frame_b64 = base64.b64encode(frame.tobytes()).decode('utf-8')
+
         convert_time_ms = (time.time() - start_convert) * 1000
-        logger.debug(f"Frame conversion took {convert_time_ms:.1f}ms")
-        
+        logger.debug(f"Frame encoding took {convert_time_ms:.1f}ms")
+
         # Build payload
         payload = {
-            "frame": frame_list,
+            "frame": frame_b64,
             "frame_shape": list(frame.shape),
             "speed_kph": float(speed_kph),
             "timestamp_ns": int(timestamp_ns)
         }
-        
+
         # Optional fields
         if vehicle_pos is not None:
             payload["vehicle_pos"] = list(vehicle_pos)
         if vehicle_direction is not None:
             payload["vehicle_direction"] = list(vehicle_direction)
-        
+
         return payload
     
     def _submit_tasks(self, payload):
