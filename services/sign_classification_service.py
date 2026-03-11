@@ -1,7 +1,7 @@
+import base64
 import os
 import sys
 import numpy as np
-import base64
 from flask import Flask, request, jsonify
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -47,10 +47,11 @@ def process_classification():
     try:
         data = request.get_json()
         
-        # decode frame from request
-        frame_data = np.array(data['frame'], dtype=np.uint8)
+        # Decode frame from request (base64 encoded)
+        frame_b64 = data['frame']
+        frame_bytes = base64.b64decode(frame_b64)
         frame_shape = data.get('frame_shape', [1080, 1920, 3])
-        frame = frame_data.reshape(frame_shape)
+        frame = np.frombuffer(frame_bytes, dtype=np.uint8).reshape(frame_shape)
         
         # try to use pre-detected bboxes if provided
         bboxes = data.get('bboxes', None)

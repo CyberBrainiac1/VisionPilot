@@ -3,9 +3,13 @@ import numpy as np
 import os
 import pandas as pd
 from ultralytics import YOLO
-import tensorflow as tf
 import sys
 from config.config import OBJECT_DETECTION_MODEL
+
+try:
+    import tensorflow as tf
+except ImportError:
+    tf = None  # TensorFlow not required for YOLO-based object detection
 
 IMG_SIZE = (224, 224)
 DETECTION_MODEL_PATH = str(OBJECT_DETECTION_MODEL)

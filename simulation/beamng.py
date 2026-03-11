@@ -69,7 +69,7 @@ def get_timestamp_ns():
 
 def load_config():
     """Load all configuration files."""
-    config_path = os.path.join(os.path.dirname(__file__), 'config')
+    config_path = os.path.join(os.path.dirname(__file__), '..', 'config')
     
     with open(os.path.join(config_path, 'beamng_sim.yaml'), 'r') as f:
         beamng_config = yaml.safe_load(f)
@@ -107,11 +107,23 @@ def sim_setup(map_name='west_coast_usa', scenario_type='highway', vehicle_name='
     
     if vehicle_name not in beamng_config['vehicles']:
         raise ValueError(f"Vehicle '{vehicle_name}' not found in config. Available vehicles: {list(beamng_config['vehicles'].keys())}")
-    
+
     vehicle_cfg = beamng_config['vehicles'][vehicle_name]
-    
+
     sim_cfg = beamng_config['simulation']
-    beamng = BeamNGpy(sim_cfg['host'], sim_cfg['port'], home=sim_cfg['home'])
+
+    # BEAMNG_HOME env var always wins over the YAML value.
+    # Set it with:  $env:BEAMNG_HOME = "C:\Path\To\BeamNG.tech.vX.X"
+    beamng_home = os.environ.get('BEAMNG_HOME') or sim_cfg.get('home')
+    if not beamng_home:
+        raise RuntimeError(
+            "BeamNG.tech home directory is not set.\n"
+            "Set the BEAMNG_HOME environment variable or update config/beamng_sim.yaml.\n"
+            "Example: $env:BEAMNG_HOME = 'C:\\Users\\<you>\\BeamNG.tech.v0.37.6.0'"
+        )
+
+    logger.info(f"BeamNG home: {beamng_home}")
+    beamng = BeamNGpy(sim_cfg['host'], sim_cfg['port'], home=beamng_home)
     beamng.open()
 
     scenario = Scenario(map_cfg['map_path'], scenario_cfg['scene'])

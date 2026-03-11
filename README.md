@@ -38,6 +38,7 @@
     - [README To-Dos](#readme-to-dos)
     - [Other](#other)
   - [Note on Installation](#note-on-installation)
+  - [Windows Quickstart](#windows-quickstart)
   - [Known Limitations](#known-limitations)
     - [Simulator-Specific Limitations](#simulator-specific-limitations)
   - [Credits](#credits)
@@ -338,6 +339,43 @@ Extract individual results + visualize
 ## Note on Installation
 
 > **Status:** This project is currently in **active development**. A stable, production-ready release with pre-trained models and complete documentation will be available eventually.
+
+## Windows Quickstart
+
+> Full guide: [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) | [docs/WINDOWS_RUN_GUIDE.md](docs/WINDOWS_RUN_GUIDE.md)
+
+**Use Python 3.11.** It has the best Windows wheel coverage for TensorFlow, PyTorch, and OpenCV.
+
+```powershell
+# Allow scripts (one-time)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# Clone
+git clone https://github.com/CyberBrainiac1/VisionPilot.git
+cd VisionPilot
+
+# Setup (creates .venv, installs requirements-windows.txt, verifies)
+.\setup_windows.ps1
+
+# Start CV lane detection - works immediately with no model files
+.\run_windows.ps1
+
+# Start all 6 perception services (needs model .pt/.h5 files for most)
+.\run_windows.ps1 -Mode all-services
+
+# Run diagnostics if something is wrong
+.\diagnose_windows.ps1
+```
+
+**BeamNG simulation** (requires BeamNG.tech licence):
+```powershell
+$env:BEAMNG_HOME = "C:\Path\To\BeamNG.tech.vX.X"
+.\setup_windows.ps1 -WithBeamNG
+.\run_windows.ps1 -Mode beamng
+```
+
+> **Primary simulator: BeamNG.tech.** CARLA integration is not yet implemented.
+> `carla` is excluded from `requirements-windows.txt` - it is not on PyPI and has no entrypoint yet.
 
 ## Known Limitations
 
