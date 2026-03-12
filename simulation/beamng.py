@@ -650,8 +650,13 @@ def main():
                     radar_result = radar_aeb_acc(radar_front, perception_cfg, speed_kph)
 
                     ttc = radar_result.get('ttc', float('inf'))
-                    closest_distance = radar_result.get('closest_distance', float('inf'))
-                    closest_velocity = radar_result.get('closest_velocity', float('inf'))
+                    closest_distance = radar_result.get('closest_distance')
+                    closest_velocity = radar_result.get('closest_velocity')
+                    # Ensure numeric (None when no radar targets detected)
+                    if closest_distance is None:
+                        closest_distance = float('inf')
+                    if closest_velocity is None:
+                        closest_velocity = 0.0
 
                     if ttc <= 1.0:
                         # full breaking

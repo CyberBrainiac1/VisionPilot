@@ -29,7 +29,7 @@ def process_frame(img, confidence_threshold=default_threshold, draw_detections=T
             for det in filtered_detections:
                 x1, y1, x2, y2 = det['bbox']
                 
-                class_name = det.get('class', 'Unknown')
+                class_name = det.get('state', 'Unknown')
                 confidence = det.get('confidence', 0.0)
                 
                 label = f"{class_name} ({confidence:.2f})"

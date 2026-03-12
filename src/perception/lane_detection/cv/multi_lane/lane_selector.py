@@ -30,15 +30,19 @@ def get_current_lane(lanes, vehicle_center=None, image_width=None):
     """
     if vehicle_center is None:
         if image_width is None:
-            raise ValueError("Both vehicle_center and image_width are None; at least one must be provided")
+            raise ValueError("vehicle_center is None and image_width is also None; image_width must be provided to compute vehicle_center")
         vehicle_center = image_width / 2
     
     current_lane = None
     classified_lanes = {}
     
     for lane in lanes:
-        left_boundary_x = lane['left_fitx'][-1]
-        right_boundary_x = lane['right_fitx'][-1]
+        left_fitx = lane.get('left_fitx', [])
+        right_fitx = lane.get('right_fitx', [])
+        if len(left_fitx) == 0 or len(right_fitx) == 0:
+            continue
+        left_boundary_x = left_fitx[-1]
+        right_boundary_x = right_fitx[-1]
         lane_id = lane['lane_id']
         
         # Classify lane by position
@@ -59,7 +63,8 @@ def get_current_lane(lanes, vehicle_center=None, image_width=None):
         }
         
         if left_boundary_x <= vehicle_center <= right_boundary_x:
-            position = (vehicle_center - left_boundary_x) / (right_boundary_x - left_boundary_x)
+            denom = right_boundary_x - left_boundary_x
+            position = (vehicle_center - left_boundary_x) / denom if denom != 0 else 0.5
             current_lane = {
                 'lane_id': lane_id,
                 'lane_class': lane_class,

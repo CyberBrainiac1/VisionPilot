@@ -106,15 +106,18 @@ def filter_radar(radar_data, radar_cfg):
         print("radar missing 'point_cloud' key or radar_data is not dict-like")
         raw_points = []
 
+    # Config lives under radar_cfg['radar_filtering'] sub-dict
+    filtering_cfg = radar_cfg.get('radar_filtering', radar_cfg)
+
     filtered_points = []
 
     for point in raw_points:
         range_dist, doppler_vel, azumith_angle, elevation_angle, rcs, snr = point
 
-        within_range = (range_dist <= radar_cfg['max_distance'] and range_dist >= radar_cfg['min_distance'])
-        strong_signal = (snr >= radar_cfg['min_snr'])
-        elevation = (elevation_angle <= radar_cfg['max_elevation'] and elevation_angle >= radar_cfg['min_elevation'])
-        azumith = (azumith_angle <= radar_cfg['max_azumith'] and azumith_angle >= radar_cfg['min_azumith'])
+        within_range = (range_dist <= filtering_cfg['max_range'] and range_dist >= filtering_cfg['min_range'])
+        strong_signal = (snr >= filtering_cfg['min_snr'])
+        elevation = (elevation_angle <= filtering_cfg['max_elevation'] and elevation_angle >= filtering_cfg['min_elevation'])
+        azumith = (azumith_angle <= filtering_cfg['max_azumith'] and azumith_angle >= filtering_cfg['min_azumith'])
 
         if within_range and strong_signal and elevation and azumith:
             filtered_points.append(point)
