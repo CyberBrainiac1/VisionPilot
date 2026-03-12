@@ -27,7 +27,7 @@ class PerceptionClient:
         """
         if service_ports is None:
             service_ports = {
-                'lane_detection': 4777,
+                'cv_lane_detection': 4777,
                 'object_detection': 5777,
                 'traffic_light_detection': 6777,
                 'sign_detection': 7777,
@@ -83,7 +83,7 @@ class PerceptionClient:
         Returns:
             Dict with lane detection metrics or fallback values
         """
-        lane_result = result.results.get('lane_detection')
+        lane_result = result.results.get('cv_lane_detection')
         
         if lane_result is None:
             logger.warning("Lane detection service returned None")

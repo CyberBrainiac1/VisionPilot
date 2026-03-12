@@ -81,7 +81,7 @@ def sliding_window_search(binary_warped, start_x, histogram, num_windows=9, wind
     try:
         fit = np.polyfit(lane_y_positions, lane_x, 2)
         fitx = np.poly1d(fit)(ploty)
-    except:
+    except (ValueError, np.linalg.LinAlgError):
         fitx = np.array([start_x] * len(ploty))
         fit = None
     

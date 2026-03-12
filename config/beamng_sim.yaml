@@ -1,7 +1,7 @@
 simulation:
   host: "localhost"
   port: 64256
-  home: "C:\\Users\\user\\Documents\\beamng-tech\\BeamNG.tech.v0.37.6.0"
+  home: ""  # Leave empty; set BEAMNG_HOME environment variable instead
   deterministic_fps: 60
 
 vehicles:

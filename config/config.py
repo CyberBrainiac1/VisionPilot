@@ -14,9 +14,6 @@ SIGN_CLASSIFICATION_MODEL = MODELS_DIR / "traffic_sign" / "traffic_sign_classifi
 LIGHT_DETECTION_CLASSIFICATION_MODEL = MODELS_DIR / "traffic_light" / "traffic_light_detection.pt"
 YOLOP_MODEL = MODELS_DIR / "yolop" / "yolop.pt"
 
-# BEAMNG_HOME: prefer the environment variable so different machines work
-# without editing this file. Falls back to the dev default if the var is unset.
-BEAMNG_HOME = os.environ.get(
-    "BEAMNG_HOME",
-    r'C:\Users\user\Documents\beamng-tech\BeamNG.tech.v0.37.6.0'
-)
+# BEAMNG_HOME: read from the environment variable.
+# Set it before running:  $env:BEAMNG_HOME = "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
+BEAMNG_HOME = os.environ.get("BEAMNG_HOME")

@@ -21,7 +21,7 @@ def get_models_dict():
         if hasattr(main_module, 'MODELS'):
             return main_module.MODELS
         return None
-    except:
+    except Exception:
         return None
 
 def detect_objects(frame, model=None):

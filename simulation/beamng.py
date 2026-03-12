@@ -310,7 +310,7 @@ def get_vehicle_speed(vehicle):
 
     vehicle.poll_sensors()
     if 'vel' in vehicle.state:
-        speed_mps = vehicle.state['vel'][0]
+        speed_mps = float(np.linalg.norm(vehicle.state['vel']))
         speed_kph = speed_mps * 3.6
     else:
         speed_mps = 0.0
@@ -343,8 +343,8 @@ def draw_combined_detections(img, sign_detections, vehicle_detections, tl_detect
     # Draw Signs (Blue)
     for det in sign_detections:
         x1, y1, x2, y2 = det['bbox']
-        classification = det.get('classification', 'Sign')
-        conf = det.get('classification_confidence', 0.0)
+        classification = det.get('detection_class', 'Sign')
+        conf = det.get('detection_confidence', 0.0)
         label = f"{classification} {conf:.2f}"
         cv2.rectangle(result_img, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)
         cv2.putText(result_img, label, (int(x1), int(y1)-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
@@ -359,7 +359,7 @@ def draw_combined_detections(img, sign_detections, vehicle_detections, tl_detect
     # Draw Traffic Lights (Orange)
     for det in tl_detections:
         x1, y1, x2, y2 = det['bbox']
-        label = f"{det['class']} {det['confidence']:.2f}"
+        label = f"{det.get('state', 'Traffic Light')} {det.get('confidence', 0.0):.2f}"
         cv2.rectangle(result_img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 165, 255), 2) 
         cv2.putText(result_img, label, (int(x1), int(y1)-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
         
@@ -508,13 +508,25 @@ def main():
             except Exception as e:
                 print(f"Simulation step error: {e}")
 
-            images = camera.stream()
-            img = np.array(images['colour'])
+            try:
+                images = camera.stream()
+                if images is None or 'colour' not in images:
+                    print("Warning: Camera stream returned None or missing 'colour' key, skipping frame")
+                    frame_count += 1
+                    step_i += 1
+                    continue
+                img = np.array(images['colour'])
+            except Exception as cam_e:
+                print(f"Camera stream error: {cam_e}")
+                frame_count += 1
+                step_i += 1
+                continue
 
             # Send camera image to Foxglove
             try:
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_camera_image(img, timestamp_ns, frame_id="camera")
+                if bridge is not None:
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_camera_image(img, timestamp_ns, frame_id="camera")
             except Exception as camera_send_e:
                 print(f"Error sending camera image to Foxglove: {camera_send_e}")
 
@@ -638,8 +650,13 @@ def main():
                     radar_result = radar_aeb_acc(radar_front, perception_cfg, speed_kph)
 
                     ttc = radar_result.get('ttc', float('inf'))
-                    closest_distance = radar_result.get('closest_distance', float('inf'))
-                    closest_velocity = radar_result.get('closest_velocity', float('inf'))
+                    closest_distance = radar_result.get('closest_distance')
+                    closest_velocity = radar_result.get('closest_velocity')
+                    # Ensure numeric (None when no radar targets detected)
+                    if closest_distance is None:
+                        closest_distance = float('inf')
+                    if closest_velocity is None:
+                        closest_velocity = 0.0
 
                     if ttc <= 1.0:
                         # full breaking
@@ -679,6 +696,9 @@ def main():
             # Limit throttle based on steering angle to prevent spinning out
             throttle = throttle * (1.0 - 0.3 * abs(steering))
             throttle = np.clip(throttle, 0.05, 0.3)
+
+            # Apply control commands to the vehicle
+            vehicle.control(throttle=throttle, steering=steering, brake=brake)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -740,75 +760,79 @@ def main():
 
             try:
                 # Send vehicle control state (steering, throttle, brake)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_vehicle_control(
-                    timestamp_ns=timestamp_ns,
-                    speed_kph=speed_kph,
-                    steering=steering,
-                    throttle=throttle,
-                    brake=0.0
-                )
+                if bridge is not None:
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_vehicle_control(
+                        timestamp_ns=timestamp_ns,
+                        speed_kph=speed_kph,
+                        steering=steering,
+                        throttle=throttle,
+                        brake=brake
+                    )
             except Exception as control_send_e:
                 print(f"Error sending vehicle control to Foxglove: {control_send_e}")
 
             try:
                 # Send vehicle pose (PosesInFrame)
-                car_yaw = np.arctan2(-direction[1], -direction[0])
-                quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_vehicle_pose(
-                    timestamp_ns=timestamp_ns,
-                    x=car_pos[0],
-                    y=car_pos[1],
-                    z=car_pos[2],
-                    quat_x=quat_x,
-                    quat_y=quat_y,
-                    quat_z=quat_z,
-                    quat_w=quat_w,
-                    frame_id="map"
-                )
+                if bridge is not None:
+                    car_yaw = np.arctan2(-direction[1], -direction[0])
+                    quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_vehicle_pose(
+                        timestamp_ns=timestamp_ns,
+                        x=car_pos[0],
+                        y=car_pos[1],
+                        z=car_pos[2],
+                        quat_x=quat_x,
+                        quat_y=quat_y,
+                        quat_z=quat_z,
+                        quat_w=quat_w,
+                        frame_id="map"
+                    )
             except Exception as pose_send_e:
                 print(f"Error sending vehicle pose to Foxglove: {pose_send_e}")
 
             try:
                 # Publish complete TF tree (map - base_link - lidar_top)
-                car_yaw = np.arctan2(-direction[1], -direction[0])
-                quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_tf_tree(
-                    timestamp_ns=timestamp_ns,
-                    x=car_pos[0],
-                    y=car_pos[1],
-                    z=car_pos[2],
-                    quat_x=quat_x,
-                    quat_y=quat_y,
-                    quat_z=quat_z,
-                    quat_w=quat_w
-                )
+                if bridge is not None:
+                    car_yaw = np.arctan2(-direction[1], -direction[0])
+                    quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_tf_tree(
+                        timestamp_ns=timestamp_ns,
+                        x=car_pos[0],
+                        y=car_pos[1],
+                        z=car_pos[2],
+                        quat_x=quat_x,
+                        quat_y=quat_y,
+                        quat_z=quat_z,
+                        quat_w=quat_w
+                    )
             except Exception as tf_send_e:
                 print(f"Error publishing TF tree to Foxglove: {tf_send_e}")
 
             try:
-                car_yaw = np.arctan2(-direction[1], -direction[0])
-                quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
-                timestamp_ns = get_timestamp_ns()
-                bridge.send_vehicle_3d(
-                    timestamp_ns=timestamp_ns,
-                    x=car_pos[0],
-                    y=car_pos[1],
-                    z=car_pos[2],
-                    quat_x=quat_x,
-                    quat_y=quat_y,
-                    quat_z=quat_z,
-                    quat_w=quat_w,
-                    frame_id="map"
-                )
+                if bridge is not None:
+                    car_yaw = np.arctan2(-direction[1], -direction[0])
+                    quat_x, quat_y, quat_z, quat_w = yaw_rad_to_quaternion(car_yaw)
+                    timestamp_ns = get_timestamp_ns()
+                    bridge.send_vehicle_3d(
+                        timestamp_ns=timestamp_ns,
+                        x=car_pos[0],
+                        y=car_pos[1],
+                        z=car_pos[2],
+                        quat_x=quat_x,
+                        quat_y=quat_y,
+                        quat_z=quat_z,
+                        quat_w=quat_w,
+                        frame_id="map"
+                    )
             except Exception as vehicle_3d_send_e:
                 print(f"Error sending vehicle 3D model to Foxglove: {vehicle_3d_send_e}")
 
             try:
                 # Send LiDAR point cloud
-                if filtered_points is not None and len(filtered_points) > 0:
+                if bridge is not None and filtered_points is not None and len(filtered_points) > 0:
                     timestamp_ns = get_timestamp_ns()
                     
                     bridge.send_lidar(
@@ -834,20 +858,20 @@ def main():
                 for sign_det in sign_detections:
                     all_detections.append({
                         'bbox': sign_det['bbox'],
-                        'class': sign_det.get('classification', 'Sign'),
-                        'confidence': sign_det.get('classification_confidence', 0.0),
+                        'class': sign_det.get('detection_class', 'Sign'),
+                        'confidence': sign_det.get('detection_confidence', 0.0),
                         'type': 'sign'
                     })
                 
                 for tl_det in traffic_light_detections:
                     all_detections.append({
                         'bbox': tl_det['bbox'],
-                        'class': tl_det.get('class', 'Traffic Light'),
+                        'class': tl_det.get('state', 'Traffic Light'),
                         'confidence': tl_det.get('confidence', 0.0),
                         'type': 'traffic_light'
                     })
                 
-                if all_detections:
+                if all_detections and bridge is not None:
                     bridge.send_2d_detections(all_detections, timestamp_ns, image_width=1280, image_height=720)
                     
                     bridge.send_2d_detections_as_3d(

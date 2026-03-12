@@ -94,6 +94,14 @@ def process_lane_detection():
             }
         }
 
+        # Include result image for visualization (resize for smaller payload)
+        if result_img is not None:
+            try:
+                result_small = cv2.resize(result_img, (640, 360))
+                response['result_image'] = result_small.tolist()
+            except Exception as img_e:
+                print(f"[CV Lane Detection Service] Warning: could not encode result image: {img_e}")
+
         return response, 200
 
     except Exception as e:

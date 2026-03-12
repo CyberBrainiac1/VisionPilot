@@ -139,8 +139,9 @@ models/
   yolop/yolop.pt                                 (YOLOP - unified perception)
 ```
 
-Services start without weights but return errors at inference time. CV lane
-detection (port 4777) works with zero model files.
+Services that need model weights (`MODEL_PATH` env var) exit immediately at startup
+if the weight file is not present. CV lane detection (port 4777) needs no model file
+and always starts cleanly.
 
 ---
 

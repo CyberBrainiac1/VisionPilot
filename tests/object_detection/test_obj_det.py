@@ -11,6 +11,8 @@ from beamngpy import BeamNGpy, Scenario, Vehicle
 from beamngpy.sensors import Camera
 from ultralytics import YOLO
 
+from config.config import OBJECT_DETECTION_MODEL
+
 
 def yaw_to_quat(yaw_deg):
     """Convert yaw angle in degrees to quaternion."""
@@ -21,7 +23,13 @@ def yaw_to_quat(yaw_deg):
 
 
 def main():
-    bng = BeamNGpy('localhost', 64256, home="C:\\Users\\user\\Documents\\beamng-tech\\BeamNG.tech.v0.37.6.0")
+    beamng_home = os.environ.get('BEAMNG_HOME', '')
+    if not beamng_home:
+        raise RuntimeError(
+            "BEAMNG_HOME environment variable is not set.\n"
+            "Example: $env:BEAMNG_HOME = 'C:\\Users\\<you>\\BeamNG.tech.v0.37.6.0'"
+        )
+    bng = BeamNGpy('localhost', 64256, home=beamng_home)
     bng.open(launch=True)
 
     scenario = Scenario('west_coast_usa', 'highway')
@@ -48,7 +56,7 @@ def main():
     )
 
     print("Loading YOLO object detection model...")
-    model = YOLO(r'C:\Users\user\Documents\github\self-driving-car-simulation\models\object_detection\object_detection.pt')
+    model = YOLO(str(OBJECT_DETECTION_MODEL))
     print("Model loaded")
 
     print("Spawning traffic...")
