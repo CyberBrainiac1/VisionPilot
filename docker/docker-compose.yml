@@ -13,7 +13,28 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-  
+
+  cv_lane_detection:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: "visionpilot_cv_lane_detection"
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "4777:4777"
+    networks:
+      - visionpilot_net
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4777/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    command: ["python3", "/app/services/cv_lane_detection_service.py"]
+
   object_detection:
     build:
       context: ..

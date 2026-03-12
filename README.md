@@ -178,6 +178,7 @@ VisionPilot uses a **containerized microservices architecture** where each perce
 
 | Service | Port | Function | Model/Framework |
 |---------|------|----------|-----------------|
+| **CV Lane Detection** | 4777 | Multi-lane detection (OpenCV) — no model file required | OpenCV |
 | **Object Detection** | 5777 | Vehicle, pedestrian, cyclist detection | YOLOv11 |
 | **Traffic Light Detection** | 6777 | Traffic light detection & state classification | YOLOv11 |
 | **Sign Detection** | 7777 | Traffic sign detection | YOLOv11 |
@@ -192,6 +193,7 @@ BeamNG Simulation Loop
 PerceptionClient.process_frame()
     ↓
 Aggregator (concurrent orchestration)
+    ├─→ CV Lane Detection (4777)
     ├─→ Object Detection (5777)
     ├─→ Traffic Light (6777)
     ├─→ Sign Detection (7777)

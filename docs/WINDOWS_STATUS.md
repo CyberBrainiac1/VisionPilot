@@ -63,9 +63,11 @@ project root/
 | `setup_windows.ps1` | OK | Creates venv, installs deps, verifies |
 | `run_windows.ps1` (default) | OK | Starts CV lane detection (port 4777) |
 | `diagnose_windows.ps1` | OK | Diagnostics report |
-| `services/cv_lane_detection_service.py` | OK | No model needed |
-| `src/communication/aggregator/` | OK | Fixed circular import |
+| `services/cv_lane_detection_service.py` | OK | No model needed; always-on service |
+| `src/communication/aggregator/` | OK | Fixed circular import; concurrent orchestration for all 6 services |
 | All `config/*.yaml` | OK | Load cleanly |
+| `src/sensor_fusion/radar/main.py` | OK | filter_radar config key mismatch fixed |
+| `src/perception/lane_detection/cv/multi_lane/lane_selector.py` | OK | IndexError + ZeroDivisionError guards added |
 
 ---
 
@@ -103,7 +105,12 @@ models/
 |------|-----|-----|
 | `config/__innit__.py` | Filename typo - prevented import | Renamed to `__init__.py` |
 | `config/config.py` | Hardcoded `BEAMNG_HOME` path — broken on any machine except dev | Made `BEAMNG_HOME` read from env var with hardcoded path as fallback |
-| `src/communication/aggregator/__init__.py` | Circular import | Changed to relative import `.aggregator` |
+| `src/sensor_fusion/radar/main.py` | `filter_radar()` read flat keys (`max_distance`, `min_distance`) but config nests them under `radar_filtering` sub-dict (`max_range`, `min_range`) — every radar call raised `KeyError` | Read `filtering_cfg = radar_cfg.get('radar_filtering', radar_cfg)` with correct key names |
+| `src/perception/traffic_light_detection/main.py` | `draw_detections` path used `det.get('class', ...)` but `detect_classify.py` emits `'state'` — all rendered labels were "Unknown" | Changed to `det.get('state', 'Unknown')` |
+| `src/perception/lane_detection/cv/multi_lane/lane_selector.py` | `lane['left_fitx'][-1]` raised `IndexError` when `sliding_window_search` returned empty array | Guard: `if len(left_fitx) == 0 or len(right_fitx) == 0: continue` |
+| `src/perception/lane_detection/cv/multi_lane/lane_selector.py` | `(vehicle_center - left_x) / (right_x - left_x)` raised `ZeroDivisionError` when boundaries converged | Guard: `denom = ...; position = ... / denom if denom != 0 else 0.5` |
+| `simulation/beamng.py` | `closest_distance` / `closest_velocity` fetched with `.get()` but can be explicit `None` in the radar result dict; `:.2f` format raised `TypeError` | Explicit `None` → `float('inf')` / `0.0` guards after fetch |
+| `config/config.py` | `BEAMNG_HOME` default was `""` — empty string passed to `beamng_home` check and silently succeeded where it should fail | Changed to `os.environ.get("BEAMNG_HOME") or None` |
 | `src/communication/aggregator/aggregator.py` | Sent frame as JSON list; services expected base64 | Changed to `base64.b64encode` |
 | `src/communication/aggregator/aggregator.py` | ThreadPoolExecutor crash with 0 services | Added `max(len, 1)` guard |
 | `services/cv_lane_detection_service.py` | Missing `return response, 200` | Added return; switched to base64 decode |

@@ -16,4 +16,4 @@ YOLOP_MODEL = MODELS_DIR / "yolop" / "yolop.pt"
 
 # BEAMNG_HOME: read from the environment variable.
 # Set it before running:  $env:BEAMNG_HOME = "C:\Users\<you>\BeamNG.tech.v0.37.6.0"
-BEAMNG_HOME = os.environ.get("BEAMNG_HOME") or None
+BEAMNG_HOME = os.environ.get("BEAMNG_HOME")

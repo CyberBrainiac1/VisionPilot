@@ -66,7 +66,7 @@ cd VisionPilot
 | YOLOP | 9777 | Needs `models\yolop\yolop.pt` + `YOLOP_REPO_PATH` env var |
 | BeamNG simulation loop | — | `simulation\beamng.py` — drives the vehicle |
 
-Services without model files start but return errors at inference time.
+Services without model files exit immediately at startup.
 See [WINDOWS_SETUP.md](WINDOWS_SETUP.md#model-weights) for where to place the weight files.
 
 The simulation loop:

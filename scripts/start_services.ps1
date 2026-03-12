@@ -8,8 +8,9 @@
 
     This is the Windows equivalent of scripts/start_services.sh.
     Services that require model weights (object_detection, traffic_light,
-    sign_detection, sign_classification, yolop) will start but return
-    unhealthy until the corresponding .pt / .h5 files exist in models/.
+    sign_detection, sign_classification, yolop) exit immediately at startup
+    if the corresponding .pt / .h5 files are missing from models/.
+    Check logs\<service>.err if a service does not appear in the health summary.
 
     CV lane detection (port 4777) works without any model files.
 
@@ -111,8 +112,8 @@ if ($AllHealthy) {
     Write-Host "All services healthy!" -ForegroundColor Green
 } else {
     Write-Host "Some services did not respond." -ForegroundColor Yellow
-    Write-Host "Services needing model files will show unhealthy until .pt/.h5 files" -ForegroundColor Yellow
-    Write-Host "are placed in the models/ directory." -ForegroundColor Yellow
+    Write-Host "Services needing model files exit at startup if .pt/.h5 files" -ForegroundColor Yellow
+    Write-Host "are not present in the models/ directory." -ForegroundColor Yellow
     Write-Host "Check logs\ for details." -ForegroundColor Yellow
 }
 
